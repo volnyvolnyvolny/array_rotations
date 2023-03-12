@@ -1020,8 +1020,7 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// 1. **Auxiliary rotation** — if left or right side fits in buffer (`32 * size_of(usize)` bytes);
 /// 2. **Bridge rotation** — if the overlap fits in buffer;
-/// 3. **Piston rotation** — if the left or right size is `10% - 30%` long;
-/// 4. **Contrev rotation** — otherwise.
+/// 3. **Piston rotation** — otherwise.
 pub unsafe fn ptr_comb_rotate<T>(left: usize, mid: *mut T, right: usize) {
     type BufType = [usize; 32];
 
@@ -1041,65 +1040,7 @@ pub unsafe fn ptr_comb_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    // SAFETY:
-    // `[ls, le) := [mid-left, mid-1]` is the left part;
-    // `[rs, re) := [mid, mid+right-1]` is the right part.
-    // `[mid-left, mid+right)` is valid for reading and writing
-    let (mut ls, mut le) = unsafe{ (mid.sub(left), mid.sub(1)) };
-    let (mut rs, mut re) = unsafe{ (mid, mid.add(right).sub(1)) };
-
-    // SAFETY:
-    //
-    // All operations are within `[mid-left, mid+right)` which
-    // is valid for reading and writing.
-    unsafe {
-        if left == right {
-            ptr::swap_nonoverlapping(mid, mid.sub(left), right);
-        } else {
-            let half_min = cmp::min(left, right) / 2;
-            let half_max = cmp::max(left, right) / 2;
-
-            for _ in 0..half_min { // Permutation (ls, le, re, rs)
-                ls.write(
-                    rs.replace(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
-                    )
-                );
-
-                ls = ls.add(1); le = le.sub(1);
-                rs = rs.add(1); re = re.sub(1);
-            }
-
-            if left > right {
-                for _ in 0..half_max-half_min { //(ls, le, re)
-                    ls.write(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1); le = le.sub(1);
-                    re = re.sub(1);
-                }
-            } else {
-                for _ in 0..half_max-half_min { //(rs, re, ls)
-                    ls.write(
-                        rs.replace(
-                            re.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1);
-                    rs = rs.add(1); re = re.sub(1);
-                }
-            }
-
-            let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
-            center.reverse();
-        }
-    }
+    ptr_piston_rotate(left, mid, right);
 }
 
 /// # Default rotation
