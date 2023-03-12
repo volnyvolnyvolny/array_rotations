@@ -1,0 +1,14 @@
+[package]
+name = "rotate"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "benchmark"
+harness = false
+
+[dependencies]
+gcd = "2.3.0"
