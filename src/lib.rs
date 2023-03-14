@@ -5,7 +5,6 @@ use std::mem::MaybeUninit;
 use std::mem::SizedTypeProperties;
 
 use std::cmp;
-use std::cmp::Ordering::*;
 
 //use std::mem::{MaybeUninit, SizedTypeProperties};
 use std::ptr;
@@ -363,6 +362,10 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
+    if (right == 0) || (left == 0) {
+        return;
+    }
+
     let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
     let buf = v.as_mut_ptr();
 
@@ -495,59 +498,53 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let mut c = mid.sub(left).add(right);
     let mut d = mid.add(right);
 
-    match left.cmp(&right) {
-        Greater => {
-            // SAFETY: `[mid - left + right, mid - left + right + bridge)` is valid for reading
-            unsafe {
-                ptr::copy_nonoverlapping(c, buf, bridge);
-            }
+    if left > right {
+        // SAFETY: `[mid - left + right, mid - left + right + bridge)` is valid for reading
+        unsafe {
+            ptr::copy_nonoverlapping(c, buf, bridge);
+        }
 
-            // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
-            unsafe {
-                for _ in 0..right {
-                    c.write(a.read());
-                    a.write(b.read());
+        // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
+        unsafe {
+            for _ in 0..right {
+                c.write(a.read());
+                a.write(b.read());
+                a = a.add(1);
+                b = b.add(1);
+                c = c.add(1);
+            }
+        }
 
-                    a = a.add(1);
-                    b = b.add(1);
-                    c = c.add(1);
-                }
-            }
+        // SAFETY: `[mid + right - bridge, mid + right)` is valid for writing
+        unsafe {
+            ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
+        }
+    } else if left < right {
+        // SAFETY: `[mid, mid + bridge)` is valid for reading
+        unsafe {
+            ptr::copy_nonoverlapping(b, buf, bridge);
+        }
 
-            // SAFETY: `[mid + right - bridge, mid + right)` is valid for writing
-            unsafe {
-                ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
+        // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
+        unsafe {
+            for _ in 0..left {
+                b = b.sub(1);
+                c = c.sub(1);
+                d = d.sub(1);
+                c.write(d.read());
+                d.write(b.read());
             }
-        },
-        Less => {
-            // SAFETY: `[mid, mid + bridge)` is valid for reading
-            unsafe {
-                ptr::copy_nonoverlapping(b, buf, bridge);
-            }
+        }
 
-            // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
-            unsafe {
-                for _ in 0..left {
-                    b = b.sub(1);
-                    c = c.sub(1);
-                    d = d.sub(1);
-
-                    c.write(d.read());
-                    d.write(b.read());
-                }
-            }
-
-            // SAFETY: `[mid - left, mid - left + bridge)` is valid for writing
-            unsafe {
-                ptr::copy_nonoverlapping(buf, a, bridge);
-            }
-        },
-        Equal => {
-            // SAFETY:
-            // `left == right` so `[mid-left, mid+right)` is valid for reading and writing
-            unsafe {
-                ptr::swap_nonoverlapping(mid.sub(left), mid, right);
-            }
+        // SAFETY: `[mid - left, mid - left + bridge)` is valid for writing
+        unsafe {
+            ptr::copy_nonoverlapping(buf, a, bridge);
+        }
+    } else {
+        // SAFETY:
+        // `left == right` so `[mid-left, mid+right)` is valid for reading and writing
+        unsafe {
+            ptr::swap_nonoverlapping(mid.sub(left), mid, right);
         }
     }
 }
