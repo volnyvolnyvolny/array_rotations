@@ -496,7 +496,7 @@ round is always there. Instead, algorithm 3 utilizes repeated swapping of
 [ 5  6  7  8  9 10 11:12 13 14 15 |1  2  3  4]
                        ├────────┼──┼────────┤ swap
 [ 5...             11: 1  2  3  4 12 13 14 15]
-                                    ^  ^  ^  ^
+                                   ^  ^  ^  ^
 [ 5  6  7  1  2  3  4: 8  9 10 11 12...
            ├────────┼──┼────────┤ swap
 [ 5  6  7  8  9 10 11: 1  2  3  4 12 13 14 15
@@ -513,7 +513,7 @@ To run benchmarks do:
 cargo bench
 ```
 
-The result would be in `target/criterion/{name_of_the_benchmarks_group}/report`.
+The results could be found in the `target/criterion/{name_of_the_benchmarks_group}/report`.
 
 You would have to install `gnuplot` to get the pictures.
 
