@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![feature(sized_type_properties)]
 
 //use std::cmp::Ordering;
