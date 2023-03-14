@@ -214,7 +214,7 @@ while making fewer moves. You swap the smallest array linearly towards its
 proper location, since the blocks behind it are in the proper location you
 can forget about them. What remains of the larger array is now the smallest
 array, which you rotate in a similar manner, until the smallest side shrinks
-to `0` elements. Its first known publication was in `1981` by David Gries and
+to `0` elements. Its first known publication was in *1981* by David Gries and
 Harlan Mills." [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
 
 ### Example
