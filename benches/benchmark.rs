@@ -154,7 +154,8 @@ fn benchmark(c: &mut Criterion) {
 criterion_group!{
     name = benches;
     // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default().sample_size(500).measurement_time(Duration::new(120, 0));
+//    config = Criterion::default().sample_size(500).measurement_time(Duration::new(120, 0));
+    config = Criterion::default().sample_size(500);
     targets = benchmark
 }
 criterion_main!(benches);

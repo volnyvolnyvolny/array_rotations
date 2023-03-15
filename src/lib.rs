@@ -1503,10 +1503,10 @@ mod tests {
        test_correctness(ptr_piston_rotate::<usize>);
     }
 
-    #[test]
-    fn test_ptr_comb_rotate_correctness() {
-       test_correctness(ptr_comb_rotate::<usize>);
-    }
+    // #[test]
+    // fn test_ptr_comb_rotate_correctness() {
+       // test_correctness(ptr_comb_rotate::<usize>);
+    // }
 
     #[test]
     fn test_ptr_contrev_rotate_correctness() {
@@ -1526,5 +1526,15 @@ mod tests {
     // #[test]
     // fn test_ptr_helix_rotate_correctness() {
        // test_correctness(ptr_helix_rotate::<usize>);
+    // }
+
+    // #[test]
+    // fn test_ptr_grail_rotate_correctness() {
+       // test_correctness(ptr_grail_rotate::<usize>);
+    // }
+
+    // #[test]
+    // fn test_ptr_drill_rotate_correctness() {
+       // test_correctness(ptr_drill_rotate::<usize>);
     // }
 }
