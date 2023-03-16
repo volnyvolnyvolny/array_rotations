@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
-#![feature(sized_type_properties)]
+//#![feature(sized_type_properties)]
 
 //use std::cmp::Ordering;
 use std::mem::MaybeUninit;
-use std::mem::SizedTypeProperties;
+//use std::mem::SizedTypeProperties;
 
 use std::cmp;
 
@@ -43,21 +43,18 @@ use gcd::Gcd;
 /// [10 11 12 13 14 15 :1  2  3, 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-       let slice = unsafe{ slice::from_raw_parts_mut(p, size) };
+       let slice = slice::from_raw_parts_mut(p, size);
        slice.reverse();
     }
 
-    // SAFETY: `[mid - left, mid + right)` is valid for reading and writing.
-    unsafe {
-        reverse_slice(mid.sub(left), left);
-        reverse_slice(mid,           right);
-        reverse_slice(mid.sub(left), left + right);
-    };
+    reverse_slice(mid.sub(left), left);
+    reverse_slice(mid,           right);
+    reverse_slice(mid.sub(left), left + right);
 }
 
 /// # Gries-Mills Rotation
@@ -104,23 +101,20 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...  3  4...           9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
     }
 
-    // SAFETY: all operations are made inside `[mid - left, mid + right)`
-    unsafe {
-        if left < right {
-            ptr::swap_nonoverlapping(mid.sub(left), mid, left);
-            ptr_griesmills_rotate(left, mid.add(left), right - left);
-        } else {
-            ptr::swap_nonoverlapping(mid, mid.sub(right), right);
-            ptr_griesmills_rotate(left - right, mid.sub(right), right);
-        }
+    if left < right {
+        ptr::swap_nonoverlapping(mid.sub(left), mid, left);
+        ptr_griesmills_rotate(left, mid.add(left), right - left);
+    } else {
+        ptr::swap_nonoverlapping(mid, mid.sub(right), right);
+        ptr_griesmills_rotate(left - right, mid.sub(right), right);
     }
 }
 
@@ -166,23 +160,20 @@ pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...                    9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
     }
 
-    // SAFETY: all operations are made inside `[mid-left, mid+right)`
-    unsafe {
-        if left < right {
-            ptr::swap_nonoverlapping(mid.sub(left), mid.add(right).sub(left), left);
-            ptr_piston_rotate_rec(left, mid, right - left);
-        } else {
-            ptr::swap_nonoverlapping(mid, mid.sub(left), right);
-            ptr_piston_rotate_rec(left - right, mid, right);
-        }
+    if left < right {
+        ptr::swap_nonoverlapping(mid.sub(left), mid.add(right).sub(left), left);
+        ptr_piston_rotate_rec(left, mid, right - left);
+    } else {
+        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+        ptr_piston_rotate_rec(left - right, mid, right);
     }
 }
 
