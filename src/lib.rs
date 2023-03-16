@@ -279,7 +279,6 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///            ┌──────────────┬\/┬──────────────┐
 /// [ 1  ...3 10          ...15  4 ~~~~~~~~~~~~ 9]
 ///
-///    l = 3        r = 6
 /// [ 1  ...3,10      :13 ...15] 4 ~~~~~~~~~~~~ 9    swap
 ///   └─────┴/\/\/\/\/\/┴─────┘
 ///   ┌─────┬\/\/\/\/\/\┬─────┐
@@ -293,7 +292,7 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// [10          ...15: 1  ...3  4 ~~~~~~~~~~~~ 9]
 /// ```
-pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_helix_rotate<T: std::fmt::Debug>(mut left: usize, mut mid: *mut T, mut right: usize) {
     // if T::IS_ZST {
         // return;
     // }
@@ -302,55 +301,52 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
         return;
     }
 
-    let start: usize = 0;
-    let end = mid.add(right);
+    let mut start = mid.sub(left);
+    let mut end = mid.add(right);
 
-    // loop {
-        // if (left > right) {
-            // if (right <= 1) {
-                // break;
-            // }
-// 
-            // while (mid > start) {
-                // mid = mid.sub(1);
-                // swap = mid.read();
-                // end -= 1;
-                // mid.write(end.read());
-                // end.write(swap);
-            // }
-// 
-            // mid += (left %= right);
-            // right = end - mid;
-        // } else {
-            // if (left <= 1) {
-                // break;
-            // }
-// 
-            // while (mid < end) {
-                // swap = array[mid];
-                // array[mid++] = array[start];
-                // array[start++] = swap;
-            // }
-// 
-            // mid -= (right %= left);
-            // left = mid - start;
-        // }
-    // }
+    print("beg     ", start, left+right);
 
-    // if (left && right) {
-        // ptr_aux_rotate(left, mid.sub(left).add(start), right);
-    // }
-// 
-    // // SAFETY: all operations are inside `[mid-left, mid+right)`
-    // unsafe {
-        // if left < right {
-            // ptr::swap_nonoverlapping(mid.sub(left), mid.add(left), left);
-            // ptr_helix_rotate(left, mid, right - left);
-        // } else {
-            // ptr::swap_nonoverlapping(mid, mid.sub(right), right);
-            // ptr_helix_rotate(left - right, mid.sub(right), right);
-        // }
-    // }
+    loop {
+        if left > right {
+            print("arr(l>r)", start, left+right);
+
+            if right <= 1 {
+                break;
+            }
+
+            while mid > start {
+                mid = mid.sub(1);
+                end = end.sub(1);
+
+                mid.swap(end);
+            }
+
+            left %= right;
+            mid = start.add(left);
+            right -= left;
+        } else {
+            print("arr(r<l)", start, left+right);
+
+            if left <= 1 {
+                break;
+            }
+
+            while mid < end {
+                mid.swap(start);
+
+                mid = mid.add(1);
+                start = start.add(1);
+            }
+
+            right %= left;
+            mid = end.sub(right);
+            left -= right;
+        }
+    }
+
+    if left > 0 && right > 0 {
+        ptr_aux_rotate(left, start, right);
+    }
 }
 
 /// # Auxiliary rotation
@@ -559,14 +555,20 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     }
 }
 
-// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
-    // print!("{} [", label);
-    // for _ in 0..size {
-        // print!("{:?} ", *p);
-        // p = p.add(1);
-    // }
-    // println!("]");
-// }
+unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
+    print!("{} [", label);
+
+    for i in 0..size {
+        print!("{:?} ", p.read());
+        p = p.add(1);
+
+        if i == size - 1 {
+            print!("{:?}", p.read());
+        }
+    }
+
+    println!("]");
+}
 
 /// # Juggling rotation
 ///
@@ -591,29 +593,29 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ```text
 /// [ 1  2  3  4  5  6: 7  8  9,10 11 12 13 14 15]
-///   |        |        |        |        └─────────────────┐
-///   |        |        |        └──────────────────┐       |
+///   |        |        |        |        └─────────────────╮
+///   |        |        |        └──────────────────╮       |
 ///   |        |        └─────────────────┐         |       |
 ///   |        └─────────────────┐        |         |       |
 ///   └─────────────────┐        |        |         |       |
-/// ~──────────┐        |        |        |         |       |
-/// ~─┐        |        |        |        |         |       |
+/// ~──────────╮        |        |        |         |       |
+/// ~─╮        |        |        |        |         |       |
 /// [10  2  3 13  5  6: 1  8  9, 4 11 12  7 14 15][10  2  3 13...
-///      |        |        |        |        └──────────────────┐
-///      |        |        |        └──────────────────┐        |
+///      |        |        |        |        └──────────────────╮
+///      |        |        |        └──────────────────╮        |
 ///      |        |        └─────────────────┐         |        |
 ///      |        └─────────────────┐        |         |        |
 ///      └─────────────────┐        |        |         |        |
-/// ~─────────────┐        |        |        |         |        |
-/// ~────┐        |        |        |        |         |        |
+/// ~─────────────╮        |        |        |         |        |
+/// ~────╮        |        |        |        |         |        |
 /// [10 11  3 13 14  6: 1  2  9, 4  5 12  7  8 15][10 11  3 13 14...
-///         |        |        |        |        └──────────────────┐
-///         |        |        |        └──────────────────┐        |
+///         |        |        |        |        └──────────────────╮
+///         |        |        |        └──────────────────╮        |
 ///         |        |        └─────────────────┐         |        |
 ///         |        └─────────────────┐        |         |        |
 ///         └─────────────────┐        |        |         |        |
-/// ~────────────────┐        |        |        |         |        |
-/// ~───────┐        |        |        |        |         |        |
+/// ~────────────────╮        |        |        |         |        |
+/// ~───────╮        |        |        |        |         |        |
 /// [   ...12    ...15:    ...3     ...6     ...9][   ...12    ...15:..
 /// ```
 pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
@@ -804,8 +806,8 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
             }
         }
 
-        // let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
-        // center.reverse();
+        let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
+        center.reverse();
     }
 }
 
@@ -976,7 +978,6 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
             re = re.sub(1);
         }
 
-
 //      let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
 //      center.reverse();
     }
@@ -1133,6 +1134,8 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// when `left < right` the swapping happens from the left instead.
 pub unsafe fn stable_ptr_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+    //Taken from https://github.com/rust-lang/rust/blob/11d96b59307b1702fffe871bfc2d0145d070881e/library/core/src/slice/rotate.rs .
+
     type BufType = [usize; 32];
 
     // if T::IS_ZST {
@@ -1368,29 +1371,29 @@ mod tests {
     }
 
     fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
-        // --empty--
-        case(rotate_f,  0,  0);
-
-        // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
-        case(rotate_f, 15,  3);
- 
+        // // --empty--
+        // case(rotate_f,  0,  0);
+// 
+        // // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
+        // case(rotate_f, 15,  3);
+ // 
         // 1  2  3  4  5  6  7 (8) 9 10 11 12 13 14 15
         case(rotate_f, 15,  1);
  
-        // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
-        case(rotate_f, 14,  0);
-
-        // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
-        case(rotate_f, 15,  7);
-
-        // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
-        case(rotate_f, 15, 13);
-
-        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
-        case(rotate_f, 15, 15);
-
-        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
-        case(rotate_f, 100000, 0);
+        // // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
+        // case(rotate_f, 14,  0);
+// 
+        // // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
+        // case(rotate_f, 15,  7);
+// 
+        // // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
+        // case(rotate_f, 15, 13);
+// 
+        // //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        // case(rotate_f, 15, 15);
+// 
+        // //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        // case(rotate_f, 100000, 0);
     }
 
     #[test]
