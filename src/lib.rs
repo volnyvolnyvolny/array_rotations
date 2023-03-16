@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
-#![feature(sized_type_properties)]
+// #![feature(sized_type_properties)]
 
 //use std::cmp::Ordering;
 use std::mem::MaybeUninit;
-use std::mem::SizedTypeProperties;
+// use std::mem::SizedTypeProperties;
 
 use std::cmp;
 
@@ -43,9 +43,9 @@ use gcd::Gcd;
 /// [10 11 12 13 14 15 :1  2  3, 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
        let slice = unsafe{ slice::from_raw_parts_mut(p, size) };
@@ -104,9 +104,9 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...  3  4...           9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
@@ -166,9 +166,9 @@ pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...                    9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
@@ -228,9 +228,9 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...                    9]
 /// ```
 pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     let mut l = left as isize;
     let mut r = right as isize;
@@ -306,9 +306,9 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10          ...15: 1  ...3  4 ~~~~~~~~~~~~ 9]
 /// ```
 pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
@@ -420,9 +420,9 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
 /// [ 1                         ...11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if (right == 0) || (left == 0) {
         return;
@@ -541,9 +541,9 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1  ~  3  4...           9 10...          15]
 /// ```
 pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
     let buf = v.as_mut_ptr();
@@ -669,6 +669,10 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [   ...12    ...15:    ...3     ...6     ...9][   ...12    ...15:..
 /// ```
 pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
+    // if T::IS_ZST {
+        // return;
+    // }
+
     if left == 0 {
         return;
     }
@@ -802,9 +806,9 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 9 ~~~~~ 12 13 14 15: 1, 2  3  4  5 ~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if left == 0 || right == 0 {
         return;
@@ -972,9 +976,9 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
     type BufType = [usize; 32];
 
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
         ptr_aux_rotate(left, mid, right);
@@ -1212,9 +1216,9 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 pub unsafe fn stable_ptr_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     type BufType = [usize; 32];
 
-    if T::IS_ZST {
-        return;
-    }
+    // if T::IS_ZST {
+        // return;
+    // }
 
     loop {
         // N.B. the below algorithms can fail if these cases are not checked

@@ -11,8 +11,6 @@ cargo build
 cargo doc
 ```
 
-You would have to use `nightly rust`.
-
 To benchmark:
 
 ```
