@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
-// #![feature(sized_type_properties)]
+#![feature(sized_type_properties)]
 
 //use std::cmp::Ordering;
 use std::mem::MaybeUninit;
-// use std::mem::SizedTypeProperties;
+use std::mem::SizedTypeProperties;
 
 use std::cmp;
 
@@ -43,9 +43,9 @@ use gcd::Gcd;
 /// [10 11 12 13 14 15 :1  2  3, 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-        // return;
-    // }
+    if T::IS_ZST {
+        return;
+    }
 
     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
        let slice = unsafe{ slice::from_raw_parts_mut(p, size) };
@@ -104,9 +104,9 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...  3  4...           9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-        // return;
-    // }
+    if T::IS_ZST {
+        return;
+    }
 
     if (right == 0) || (left == 0) {
         return;
@@ -166,9 +166,9 @@ pub unsafe fn ptr_griesmills_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [10...          15: 1...                    9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-        // return;
-    // }
+    if T::IS_ZST {
+        return;
+    }
 
     if (right == 0) || (left == 0) {
         return;
@@ -235,26 +235,23 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let mut l = left as isize;
     let mut r = right as isize;
 
-    // SAFETY: all operations are made inside `[mid-left, mid+right)`
-    unsafe {
-        loop {
-            if l <= 0 {
-                return;
-            }
+    loop {
+        if l <= 0 {
+            return;
+        }
 
-            while l <= r {
-                ptr::swap_nonoverlapping(mid.offset(-l), mid.offset(r - l), l as usize);
-                r -= l;
-            }
+        while l <= r {
+            ptr::swap_nonoverlapping(mid.offset(-l), mid.offset(r - l), l as usize);
+            r -= l;
+        }
 
-            if r <= 0 {
-                return;
-            }
+        if r <= 0 {
+            return;
+        }
 
-            while l >= r {
-                ptr::swap_nonoverlapping(mid, mid.offset(-l), r as usize);
-                l -= r;
-            }
+        while l >= r {
+            ptr::swap_nonoverlapping(mid, mid.offset(-l), r as usize);
+            l -= r;
         }
     }
 }
@@ -431,34 +428,16 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
     let buf = v.as_mut_ptr();
 
-    // SAFETY: `mid-left <= mid-left+right < mid+right`
-    let dim = unsafe { mid.sub(left).add(right) };
+    let dim = mid.sub(left).add(right);
 
-    // SAFETY:
-    //
-    // 1) The `else if` condition about the sizes ensures `[mid-left; left]` will fit in
-    //    `buf` without overflow and `buf` was created just above and so cannot be
-    //    overlapped with any value of `[mid-left; left]`
-    // 2) [mid-left, mid+right) are all valid for reading and writing and we don't care
-    //    about overlaps here.
-    // 3) The `if` condition about `left <= right` ensures writing `left` elements to
-    //    `dim = mid-left+right` is valid because:
-    //    - `buf` is valid and `left` elements were written in it in 1)
-    //    - `dim+left = mid-left+right+left = mid+right` and we write `[dim, dim+left)`
-    unsafe {
-        if left <= right {
-            // 1)
-            ptr::copy_nonoverlapping(mid.sub(left), buf, left);
-            // 2)
-            ptr::copy(mid, mid.sub(left), right);
-            // 3)
-            ptr::copy_nonoverlapping(buf, dim, left);
-        } else {
-            // SAFETY: same reasoning as above but with `left` and `right` reversed
-            ptr::copy_nonoverlapping(mid, buf, right);
-            ptr::copy(mid.sub(left), dim, left);
-            ptr::copy_nonoverlapping(buf, mid.sub(left), right);
-        }
+    if left <= right {
+        ptr::copy_nonoverlapping(mid.sub(left), buf, left);
+        ptr::copy(mid, mid.sub(left), right);
+        ptr::copy_nonoverlapping(buf, dim, left);
+    } else {
+        ptr::copy_nonoverlapping(mid, buf, right);
+        ptr::copy(mid.sub(left), dim, left);
+        ptr::copy_nonoverlapping(buf, mid.sub(left), right);
     }
 }
 
@@ -561,53 +540,31 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let mut d = mid.add(right);
 
     if left > right {
-        // SAFETY: `[mid - left + right, mid - left + right + bridge)` is valid for reading
-        unsafe {
-            ptr::copy_nonoverlapping(c, buf, bridge);
+        ptr::copy_nonoverlapping(c, buf, bridge);
+
+        for _ in 0..right {
+            c.write(a.read());
+            a.write(b.read());
+            a = a.add(1);
+            b = b.add(1);
+            c = c.add(1);
         }
 
-        // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
-        unsafe {
-            for _ in 0..right {
-                c.write(a.read());
-                a.write(b.read());
-                a = a.add(1);
-                b = b.add(1);
-                c = c.add(1);
-            }
-        }
-
-        // SAFETY: `[mid + right - bridge, mid + right)` is valid for writing
-        unsafe {
-            ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
-        }
+        ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
     } else if left < right {
-        // SAFETY: `[mid, mid + bridge)` is valid for reading
-        unsafe {
-            ptr::copy_nonoverlapping(b, buf, bridge);
+        ptr::copy_nonoverlapping(b, buf, bridge);
+
+        for _ in 0..left {
+            b = b.sub(1);
+            c = c.sub(1);
+            d = d.sub(1);
+            c.write(d.read());
+            d.write(b.read());
         }
 
-        // SAFETY: `[mid - left, mid + right)` is valid for reading and writing
-        unsafe {
-            for _ in 0..left {
-                b = b.sub(1);
-                c = c.sub(1);
-                d = d.sub(1);
-                c.write(d.read());
-                d.write(b.read());
-            }
-        }
-
-        // SAFETY: `[mid - left, mid - left + bridge)` is valid for writing
-        unsafe {
-            ptr::copy_nonoverlapping(buf, a, bridge);
-        }
+        ptr::copy_nonoverlapping(buf, a, bridge);
     } else {
-        // SAFETY:
-        // `left == right` so `[mid-left, mid+right)` is valid for reading and writing
-        unsafe {
-            ptr::swap_nonoverlapping(mid.sub(left), mid, right);
-        }
+        ptr::swap_nonoverlapping(mid.sub(left), mid, right);
     }
 }
 
@@ -814,64 +771,50 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    // SAFETY:
-    // `[ls, le) := [mid-left, mid-1]` is the left part;
-    // `[rs, re) := [mid, mid+right-1]` is the right part.
-    // `[mid-left, mid+right)` is valid for reading and writing
-    let (mut ls, mut le) = unsafe{ (mid.sub(left), mid.sub(1)) };
-    let (mut rs, mut re) = unsafe{ (mid, mid.add(right).sub(1)) };
+    let (mut ls, mut le) = (mid.sub(left), mid.sub(1));
+    let (mut rs, mut re) = (mid, mid.add(right).sub(1));
 
-    // SAFETY:
-    //
-    // All operations are within `[mid-left, mid+right)` which
-    // is valid for reading and writing.
-    unsafe {
-        if left == right {
-            ptr::swap_nonoverlapping(mid, mid.sub(left), right);
-        } else {
-            let half_min = cmp::min(left, right) / 2;
-            let half_max = cmp::max(left, right) / 2;
+    if left == right {
+        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+    } else {
+        let half_min = cmp::min(left, right) / 2;
+        let half_max = cmp::max(left, right) / 2;
+        for _ in 0..half_min { // Permutation (ls, le, re, rs)
+            ls.write(
+                rs.replace(
+                    re.replace(
+                        le.replace(ls.read())
+                    )
+                )
+            );
+            ls = ls.add(1); le = le.sub(1);
+            rs = rs.add(1); re = re.sub(1);
+        }
 
-            for _ in 0..half_min { // Permutation (ls, le, re, rs)
+        if left > right {
+            for _ in 0..half_max-half_min { //(ls, le, re)
                 ls.write(
-                    rs.replace(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
+                    re.replace(
+                        le.replace(ls.read())
                     )
                 );
-
                 ls = ls.add(1); le = le.sub(1);
+                re = re.sub(1);
+            }
+        } else {
+            for _ in 0..half_max-half_min { //(rs, re, ls)
+                ls.write(
+                    rs.replace(
+                        re.replace(ls.read())
+                    )
+                );
+                ls = ls.add(1);
                 rs = rs.add(1); re = re.sub(1);
             }
-
-            if left > right {
-                for _ in 0..half_max-half_min { //(ls, le, re)
-                    ls.write(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1); le = le.sub(1);
-                    re = re.sub(1);
-                }
-            } else {
-                for _ in 0..half_max-half_min { //(rs, re, ls)
-                    ls.write(
-                        rs.replace(
-                            re.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1);
-                    rs = rs.add(1); re = re.sub(1);
-                }
-            }
-
-            let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
-            center.reverse();
         }
+
+        // let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
+        // center.reverse();
     }
 }
 
@@ -992,74 +935,59 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    // SAFETY:
-    // `[ls, le) := [mid-left, mid-1]` is the left part;
-    // `[rs, re) := [mid, mid+right-1]` is the right part.
-    // `[mid-left, mid+right)` is valid for reading and writing
-    let (mut ls, mut le) = unsafe{ (mid.sub(left), mid.sub(1)) };
-    let (mut rs, mut re) = unsafe{ (mid, mid.add(right).sub(1)) };
+    let (mut ls, mut le) = (mid.sub(left), mid.sub(1));
+    let (mut rs, mut re) = (mid, mid.add(right).sub(1));
 
-    // SAFETY:
-    //
-    // All operations are within `[mid-left, mid+right)` which
-    // is valid for reading and writing.
-    unsafe {
-        if left == right {
-            ptr::swap_nonoverlapping(mid, mid.sub(left), right);
-        } else {
-            let half_min = cmp::min(left, right) / 2;
-            let half_max = cmp::max(left, right) / 2;
+    if left == right {
+        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+    } else {
+        let half_min = cmp::min(left, right) / 2;
+        let half_max = cmp::max(left, right) / 2;
+        for _ in 0..half_min { // Permutation (ls, le, re, rs)
+            ls.write(
+                rs.replace(
+                    re.replace(
+                        le.replace(ls.read())
+                    )
+                )
+            );
+            ls = ls.add(1); le = le.sub(1);
+            rs = rs.add(1); re = re.sub(1);
+        }
 
-            for _ in 0..half_min { // Permutation (ls, le, re, rs)
+        if left > right {
+            for _ in 0..half_max-half_min { //(ls, le, re)
                 ls.write(
-                    rs.replace(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
+                    re.replace(
+                        le.replace(ls.read())
                     )
                 );
-
                 ls = ls.add(1); le = le.sub(1);
-                rs = rs.add(1); re = re.sub(1);
-            }
-
-            if left > right {
-                for _ in 0..half_max-half_min { //(ls, le, re)
-                    ls.write(
-                        re.replace(
-                            le.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1); le = le.sub(1);
-                    re = re.sub(1);
-                }
-            } else {
-                for _ in 0..half_max-half_min { //(rs, re, ls)
-                    ls.write(
-                        rs.replace(
-                            re.replace(ls.read())
-                        )
-                    );
-
-                    ls = ls.add(1);
-                    rs = rs.add(1); re = re.sub(1);
-                }
-            }
-
-            for _ in 0..re.offset_from(ls).abs() / 2 { //(re, ls)
-                ls.write(
-                    re.replace(ls.read())
-                );
-
-                ls = ls.add(1);
                 re = re.sub(1);
             }
-
-
-//            let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
-//            center.reverse();
+        } else {
+            for _ in 0..half_max-half_min { //(rs, re, ls)
+                ls.write(
+                    rs.replace(
+                        re.replace(ls.read())
+                    )
+                );
+                ls = ls.add(1);
+                rs = rs.add(1); re = re.sub(1);
+            }
         }
+
+        for _ in 0..re.offset_from(ls).abs() / 2 { //(re, ls)
+            ls.write(
+                re.replace(ls.read())
+            );
+            ls = ls.add(1);
+            re = re.sub(1);
+        }
+
+
+//      let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
+//      center.reverse();
     }
 }
 
@@ -1469,6 +1397,9 @@ mod tests {
 
         //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
         case(rotate_f, 15, 15);
+
+        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        case(rotate_f, 100000, 0);
     }
 
     #[test]

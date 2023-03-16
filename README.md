@@ -6,14 +6,14 @@ This page is inspired by [https://github.com/scandum/rotate](https://github.com/
 
 To build project with documentation:
 
-```
+```text
 cargo build
 cargo doc
 ```
 
 To benchmark:
 
-```
+```text
 cargo bench
 ```
 
@@ -517,7 +517,7 @@ when `left < right` the swapping happens from the left instead.
 
 To run benchmarks do:
 
-```
+```text
 cargo bench
 ```
 

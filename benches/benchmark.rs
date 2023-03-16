@@ -136,11 +136,57 @@ fn case_stable_vs_contrev_vs_piston(c: &mut Criterion, len: usize, ls: &[usize])
     group.finish();
 }
 
+fn case_stable_vs_contrev_vs_piston_vs_bridge(c: &mut Criterion, len: usize, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Rotations (Stable vs Contrev vs Piston vs Bridge) (len = {len})").as_str());
+    let mut v = seq(len);
+
+    for l in ls {
+        let p =
+            unsafe {
+                let p = &v[..].as_mut_ptr().add(l.clone());
+                p.clone()
+            };
+    
+        let r = len - l;
+
+        group.bench_with_input(BenchmarkId::new("Stable", l),  l, |b, l| b.iter(|| test(stable_ptr_rotate::<usize>,  l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Piston", l),  l, |b, l| b.iter(|| test(ptr_piston_rotate::<usize>,  l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| b.iter(|| test(ptr_contrev_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Bridge", l),  l, |b, l| b.iter(|| test(ptr_bridge_rotate::<usize>,  l.clone(), p, r)));
+    }
+
+    group.finish();
+}
+
+fn case_50000_stable_vs_contrev_vs_bridge(c: &mut Criterion, len: usize, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Rotations (Stable vs Contrev vs Bridge) (len = 100000)").as_str());
+    let mut v = seq(len);
+
+    for l in ls {
+        let p =
+            unsafe {
+                let p = &v[..].as_mut_ptr().add(l.clone());
+                p.clone()
+            };
+    
+        let r = len - l;
+
+        group.bench_with_input(BenchmarkId::new("Stable", l),  l, |b, l| b.iter(|| test(stable_ptr_rotate::<usize>,  l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| b.iter(|| test(ptr_contrev_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, l| b.iter(|| test(ptr_bridge_rotate::<usize>, l.clone(), p, r)));
+    }
+
+    group.finish();
+}
+
 fn benchmark(c: &mut Criterion) {
 //    case_stable(c, 100, &[1, 16, 32, 33, 40, 50, 60, 68, 69, 84, 100]);
 
 //    case_stable(c, 1000000, &[1000, 100000, 200000, 300000, 400000, 499990]);
-    case_stable_vs_contrev_vs_piston(c, 1000, &[33, 100, 200, 300, 400, 500, 600, 700, 800, 900, 967]);
+//    case_stable_vs_contrev_vs_piston(c, 1000,  &[33, 100, 200, 300, 400, 500, 600, 700, 800, 900, 967]);
+//    case_stable_vs_contrev_vs_piston(c, 10000, &[33, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 9967]);
+//    case_stable_vs_contrev_vs_piston_vs_bridge(c, 100000, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
+    case_50000_stable_vs_contrev_vs_bridge(c, 100000, &[49999, 50000, 50001]);
 
                          //aux                  //bridge
     // case(c,      100, &[1, 5, 10, 20, 32,       33,       35]);
