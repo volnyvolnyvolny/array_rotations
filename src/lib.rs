@@ -585,20 +585,20 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     }
 }
 
-unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
-    print!("{} [", label);
-
-    for i in 0..size {
-        if i == size - 1 {
-            print!("{:?}", p.read());
-        } else {
-            print!("{:?} ", p.read());
-            p = p.add(1);
-        }
-    }
-
-    println!("]");
-}
+// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
+    // print!("{} [", label);
+// 
+    // for i in 0..size {
+        // if i == size - 1 {
+            // print!("{:?}", p.read());
+        // } else {
+            // print!("{:?} ", p.read());
+            // p = p.add(1);
+        // }
+    // }
+// 
+    // println!("]");
+// }
 
 /// # Juggling rotation
 ///
@@ -1048,7 +1048,7 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// [10 ........... 15: 1 ... 3  4 ~~~~~~~~~~~~ 9]
 /// ```
-pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
     let mut min = cmp::min(left, right);
     let mut start = mid.sub(left);
 

@@ -1,6 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use rotate::*;
-use std::time::Duration;
+//use std::time::Duration;
+use std::ptr;
 
 // fn div(s: usize, diff: usize) -> (usize, usize) {
     // assert!(s >= diff);
@@ -40,6 +41,44 @@ fn test(rotate: unsafe fn(left: usize, mid: *mut usize, right: usize), left: usi
         // unsafe{ rotate(left, p, right) }
         // unsafe{ rotate(right, p.sub(left - right), left) }
     // }
+}
+
+fn test_swap<T>(swap: unsafe fn(x: *mut T, y: *mut T, count: usize), x: *mut T, y: *mut T, count: usize){
+//    if left <= right {
+        unsafe{ swap(x, y, count) }
+        // unsafe{ rotate(right, p.add(right - left), left) }
+    // } else {
+        // unsafe{ rotate(left, p, right) }
+        // unsafe{ rotate(right, p.sub(left - right), left) }
+    // }
+}
+
+unsafe fn contrev_swap<T>(x: *mut T, _y: *mut T, count: usize) {
+    ptr_contrev_rotate(count, x.add(count), count);
+}
+
+fn case_swap_nonoverlapping(c: &mut Criterion, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Nonoverlapping swaps").as_str());
+    let mut v = seq(*ls.into_iter().max().unwrap());
+
+    for l in ls {
+        let x =
+            unsafe {
+                let x = &v[..].as_mut_ptr();
+                x.clone()
+            };
+
+        let y = unsafe{ x.add(l / 2) };
+
+        group.bench_with_input(BenchmarkId::new("Default", l), l, |b, l| b.iter(||
+            test_swap(ptr::swap_nonoverlapping::<usize>, x, y, l / 2)
+        ));
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| b.iter(||      
+            test_swap(contrev_swap::<usize>, x, y, l / 2)
+        ));
+    }
+
+    group.finish();
 }
 
 fn case_grail_vs_drill_vs_helix_vs_piston_vs_bridge(c: &mut Criterion, len: usize, ls: &[usize]) {
@@ -233,7 +272,10 @@ fn benchmark(c: &mut Criterion) {
 //    case_stable_vs_contrev_vs_piston_vs_bridge(c, 100000, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
 //    case_50000_stable_vs_contrev_vs_bridge(c, 100000, &[49999, 50000, 50001]);
 
-    case_grail_vs_drill_vs_helix_vs_piston_vs_bridge(c, 100000, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
+//    case_grail_vs_drill_vs_helix_vs_piston_vs_bridge(c, 100000, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
+
+    case_swap_nonoverlapping(c, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
+
 //    case_contrev_vs_trinity(c, 100000, &[33, 10000, 20000, 30000, 40000, 49983, 49992, 50008, 50017, 60000, 70000, 80000, 90000, 99967]);
 
                          //aux                  //bridge
