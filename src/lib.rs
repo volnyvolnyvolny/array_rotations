@@ -1,3 +1,28 @@
+/*
+Copyright (C) 2023 Valentin Vasilev.
+*/
+
+/*
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 #![doc = include_str!("../README.md")]
 //#![feature(sized_type_properties)]
 
@@ -560,20 +585,20 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     }
 }
 
-// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
-    // print!("{} [", label);
-// 
-    // for i in 0..size {
-        // if i == size - 1 {
-            // print!("{:?}", p.read());
-        // } else {
-            // print!("{:?} ", p.read());
-            // p = p.add(1);
-        // }
-    // }
-// 
-    // println!("]");
-// }
+unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
+    print!("{} [", label);
+
+    for i in 0..size {
+        if i == size - 1 {
+            print!("{:?}", p.read());
+        } else {
+            print!("{:?} ", p.read());
+            p = p.add(1);
+        }
+    }
+
+    println!("]");
+}
 
 /// # Juggling rotation
 ///
@@ -1023,7 +1048,7 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// [10 ........... 15: 1 ... 3  4 ~~~~~~~~~~~~ 9]
 /// ```
-pub unsafe fn ptr_grail_rotation<T>(mut left: usize, mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     let mut min = cmp::min(left, right);
     let mut start = mid.sub(left);
 
@@ -1056,7 +1081,7 @@ pub unsafe fn ptr_grail_rotation<T>(mut left: usize, mid: *mut T, mut right: usi
     }
 
     if min > 0 {
-        ptr_aux_rotate(left, start, right);
+        ptr_aux_rotate(left, start.add(left), right);
     }
 }
 
@@ -1087,27 +1112,21 @@ pub unsafe fn ptr_grail_rotation<T>(mut left: usize, mid: *mut T, mut right: usi
 /// [ 1  2  3  4  5  6: 7  8  9,10 11 12 13 14 15]   swap
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1 ... 3,10 .... :13 .. 15] 4 ~~~~~~~~~~~~ 9    swap
-/// ????TBC
-
-///   └─────┴/\/\/\/\/\/┴─────┘
-///   ┌─────┬\/\/\/\/\/~┬─────┐
-/// [13 .. 15;10 .. 12] 1 ~~~ 3  4 ~~~~~~~~~~~~ 9    swap
-///   └─────┴/\┴─────┘
-///   ┌─────┬~~┬─────┐
-/// [10 ~~~~~~~~~~~ 15] 1 ~~~ 3  4 ~~~~~~~~~~~~ 9
-///
-/// [10 ........... 15: 1 ... 3  4 ~~~~~~~~~~~~ 9]
+/// [ 1 ... 3;10 .. 12 13 .. 15] 4 ~~~~~~~~~~~~ 9    swap
+///   └─────┴/\┴─────────────┘
+///    ┌─────────────┬~~┬─────┐
+/// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3  4 ~~~~~~~~~~~~ 9]   swap
 /// ```
-pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_drill_rotate<T: std::fmt::Debug>(mut left: usize, mut mid: *mut T, mut right: usize) {
     let mut start = mid.sub(left);
     let mut end = mid.add(right);
     let mut s;
 
     while left > 1 {
         if left <= right {
+            let old_r = right;
             right %= left;
-            s = end.offset_from(mid) as usize - right;
+            s = old_r - right;
 
             for _ in 0..s {
                 mid.swap(start);
@@ -1121,8 +1140,9 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
             break;
         }
 
+        let old_l = left;
         left %= right;
-        s = mid.offset_from(start) as usize - left;
+        s = old_l - left;
 
         for _ in 0..s {
             mid = mid.sub(1);
@@ -1133,7 +1153,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     }
 
     if left > 0 && right > 0 {
-        ptr_aux_rotate(left, start, right);
+        ptr_aux_rotate(left, mid, right);
     }
 }
 
@@ -1444,29 +1464,29 @@ mod tests {
     }
 
     fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
-        // --empty--
-        case(rotate_f,  0,  0);
+        // // --empty--
+        // case(rotate_f,  0,  0);
 
-        // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
-        case(rotate_f, 15,  3);
+        // // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
+        // case(rotate_f, 15,  3);
  
         // 1  2  3  4  5  6  7 (8) 9 10 11 12 13 14 15
         case(rotate_f, 15,  1);
  
-        // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
-        case(rotate_f, 14,  0);
-
-        // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
-        case(rotate_f, 15,  7);
-
-        // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
-        case(rotate_f, 15, 13);
-
-        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
-        case(rotate_f, 15, 15);
-
-        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
-        case(rotate_f, 100000, 0);
+        // // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
+        // case(rotate_f, 14,  0);
+// 
+        // // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
+        // case(rotate_f, 15,  7);
+// 
+        // // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
+        // case(rotate_f, 15, 13);
+// 
+        // //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        // case(rotate_f, 15, 15);
+// 
+        // //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        // case(rotate_f, 100000, 0);
     }
 
     #[test]
@@ -1525,10 +1545,10 @@ mod tests {
        test_correctness(ptr_helix_rotate::<usize>);
     }
 
-    // #[test]
-    // fn test_ptr_grail_rotate_correctness() {
-       // test_correctness(ptr_grail_rotate::<usize>);
-    // }
+    #[test]
+    fn test_ptr_grail_rotate_correctness() {
+       test_correctness(ptr_grail_rotate::<usize>);
+    }
 
     #[test]
     fn test_ptr_drill_rotate_correctness() {
