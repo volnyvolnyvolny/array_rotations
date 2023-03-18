@@ -1117,7 +1117,7 @@ pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///    ┌─────────────┬~~┬─────┐
 /// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3  4 ~~~~~~~~~~~~ 9]   swap
 /// ```
-pub unsafe fn ptr_drill_rotate<T: std::fmt::Debug>(mut left: usize, mut mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     let mut start = mid.sub(left);
     let mut end = mid.add(right);
     let mut s;
