@@ -1,6 +1,6 @@
 # Array rotations in Rust
 
-This page is inspired by [https://github.com/scandum/rotate](https://github.com/scandum/rotate).
+This page citates [https://github.com/scandum/rotate](https://github.com/scandum/rotate).
 
 ## Quick Start
 
@@ -36,14 +36,13 @@ after the rotation the data is as following:
 “This is an easy and fast way to rotate, but since it requires auxiliary memory
 it is of little interest to in-place algorithms. It’s a good strategy for array
 sizes of `1000` elements or less. The smaller half is copied to swap memory, the
-larger half is moved, and the swap memory is copied back to the main array.”
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+larger half is moved, and the swap memory is copied back to the main array.”[^1]
 
 ### Examples
 
 ```text
        left = 9    dim     mid   right = 6
-[ 1  2  3  4  5  6 :7  8  9,            12-15]
+[ 1  2  3  4  5  6 :7  8  9,            10-15]
                                          └──┴───────┬─────┐
 [              1-6 :7 ... 9  .  .  .  .  .  .]    [10 .. 15]
                └────┬─────┴─────────────────┐                  move
@@ -82,7 +81,7 @@ auxiliary rotation that reduces the maximum auxiliary memory
 requirement from `50%` to `33.(3)%`. If the overlap between the
 two halves is smaller than the halves themselves it copies
 the overlap to swap memory instead. Its first known publication
-was in *2021* by *Igor van den Hoven*." [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+was in *2021* by *Igor van den Hoven*."[^1]
 
 ### Examples
 
@@ -151,8 +150,7 @@ Otherwise, algo fallbacks to `auxiliary`.
 and inefficient way to rotate in-place, though it does so in the
 minimal number of moves. Its first known publication was in *1966*.
 It computes the greatest common divisor and uses a loop to create
-a chain of consecutive swaps."
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+a chain of consecutive swaps."[^1]
 
 ### Example
 
@@ -189,8 +187,7 @@ a chain of consecutive swaps."
 "This is an easy and reliable way to rotate in-place. You reverse the
 left side, next you reverse the right side, next you reverse the entire
 array. Upon completion the left and right block will be swapped. There's
-no known first publication, but it was prior to *1981*."
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+no known first publication, but it was prior to *1981*."[^1]
 
 ### Example
 
@@ -212,8 +209,8 @@ while making fewer moves. You swap the smallest array linearly towards its
 proper location, since the blocks behind it are in the proper location you
 can forget about them. What remains of the larger array is now the smallest
 array, which you rotate in a similar manner, until the smallest side shrinks
-to `0` elements. Its first known publication was in *1981* by David Gries and
-Harlan Mills." [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+to `0` elements. Its first known publication was in *1981* by *David Gries* and
+*Harlan Mills*."[^1]
 
 ### Example
 
@@ -221,7 +218,7 @@ Harlan Mills." [https://github.com/scandum/rotate](https://github.com/scandum/ro
           left = 9         mid   right = 6
 [ 1  2  3  4  5  6: 7  8  9,10 11 12 13 14 15]   swap
            └──────────────┴/\┴──────────────┘
-           ┌──────────────┬\/┬──────────────┐
+           ┌──────────────┬\~┬──────────────┐
 [ 1 ... 3 10 ........... 15  4 ~~~~~~~~~~~~ 9]
 
    l = 3       r = 6
@@ -248,9 +245,7 @@ side it's swapped from.
 In addition it performs an auxiliary rotation on stack memory when the smallest side reaches
 a size of 1 element, which is the worst case for the Gries-Mills rotation. The flow diagram
 is identical to that of Gries-Mills, but due to memory being shifted from the right the
-visualization differs."
-
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+visualization differs."[^1]
 
 ### Examples
 
@@ -259,7 +254,7 @@ visualization differs."
 [ 1  2  3  4  5  6: 7  8  9,10 11 12 13 14 15]   swap
            └──────────────┴/\┴──────────────┘
            ┌──────────────┬\~┬──────────────┐
-[ 1 ... 3;10    12 13 .. 15] 4 ~~~~~~~~~~~~ 9    swap
+[ 1 ... 3;10 .. 12 13 .. 15] 4 ~~~~~~~~~~~~ 9    swap
   └─────┴/\┴─────┘
   ┌─────┬~/┬─────┐
 [10 ~~ 12  1 ... 3 13 .. 15] 4 ~~~~~~~~~~~~ 9    swap
@@ -274,10 +269,10 @@ visualization differs."
 
 "The drill rotation is a grail variant that utilizes a piston main loop
 and a helix inner loop. Performance is similar to the helix rotation.
-The flow diagram and visualization are identical to the grail rotation."
-*2021* - Drill rotation by Igor van den Hoven (grail derived with piston
-and helix loops)
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+The flow diagram and visualization are identical to the grail rotation."[^1]
+
+*2021* - Drill rotation by *Igor van den Hoven* (*Grail* derived with *Piston*
+and *Helix* loops).
 
 ### Examples
 
@@ -298,7 +293,7 @@ and helix loops)
 the Gries-Mills rotation but performs non-linear swaps. It is implemented as
 the *Piston Rotation* in the benchmark, named after a loop optimization that
 removes up to `log n` branch mispredictions by performing both a left and
-rightward rotation in each loop." [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+rightward rotation in each loop."[^1]
 
 ### Example
 
@@ -306,7 +301,7 @@ rightward rotation in each loop." [https://github.com/scandum/rotate](https://gi
           left = 9         mid  right = 6
 [ 1  2  3  4  5  6: 7  8  9,10 11 12 13 14 15]   swap
   └──────────────┴/\/\/\/\/\/┴──────────────┘
-  ┌──────────────┬\/\/\/\/\/\┬──────────────┐
+  ┌──────────────┬~/\/\/\/\/\┬──────────────┐
 [10 ~~~~~~~~~~~ 15: 7 ... 9  1 ............ 6]
 
                       l = 3        r = 6
@@ -318,7 +313,7 @@ rightward rotation in each loop." [https://github.com/scandum/rotate](https://gi
                       l = 3   r = 3
  10 ~~~~~~~~~~~ 15[ 4 ... 6; 1 ... 3] 7 ~~~ 9    swap
                     └─────┴/\┴─────┘
-                    ┌─────┬\/┬─────┐
+                    ┌─────┬~~┬─────┐
  10 ~~~~~~~~~~~ 15[ 1 ~~~~~~~~~~~~ 6] 7 ~~~ 9
 
 [10 ........... 15: 1 ..................... 9]
@@ -326,12 +321,12 @@ rightward rotation in each loop." [https://github.com/scandum/rotate](https://gi
 
 ## Contrev (Conjoined triple reversal) rotation
 
-2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
-
 "The conjoined triple reversal is derived from the triple reversal rotation. Rather than three
 separate reversals it conjoins the three reversals, improving locality and reducing
-the number of moves. Its first known publication was in 2021 by Igor van den
-Hoven." [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+the number of moves. Its first known publication was in *2021* by *Igor van den
+Hoven*."[^1]
+
+*2021* - *Conjoined Triple Reversal rotation* by *Igor van den Hoven*.
 
 ### Examples
 
@@ -416,14 +411,14 @@ Case: `left > right`, `8 - 7`.
 
 ### Trinity
 
-2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
-
 "The trinity rotation (aka conjoined triple reversal) is derived from the triple reversal
 rotation. Rather than three separate reversals it conjoins the three reversals, improving
 locality and reducing the number of moves. Optionally, if the overlap is smaller than
 `32 * size_of(usize)`, it skips the trinity rotation and performs an auxiliary
-or bridge rotation on stack memory. Its first known publication was in 2021 by Igor van den Hoven."
-[https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+or bridge rotation on stack memory. Its first known publication was in *2021* by *Igor van den Hoven*."
+[^1]
+
+2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
 
 #### Example
 
@@ -505,7 +500,7 @@ Case: `left > right`, `8 - 7`.
 [ 9 ~~~~~ 12 13 14 15: 1, 2  3  4  5 ~~~~~~ 8]
 ```
 
-### Default
+### Default rotation
 
 Combines juggler, auxiliary and piston rotations.
 
@@ -575,8 +570,10 @@ To run benchmarks do:
 cargo bench
 ```
 
-The results could be found in the `target/criterion/{name_of_the_benchmarks_group}/report`.
+Result could be found in the `target/criterion/{name_of_the_benchmarks_group}/report`.
 
 You would have to install `gnuplot` to get the pictures.
 
 Note that benchmarking could take some time :)
+
+[^1]: [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
