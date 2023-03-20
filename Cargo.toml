@@ -1,5 +1,5 @@
 [package]
-name = "rotate"
+name = "rust_rotates"
 version = "0.1.0"
 edition = "2021"
 

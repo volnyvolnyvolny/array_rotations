@@ -802,6 +802,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
     } else {
         let half_min = cmp::min(left, right) / 2;
         let half_max = cmp::max(left, right) / 2;
+
         for _ in 0..half_min { // Permutation (ls, le, re, rs)
             ls.write(
                 rs.replace(
