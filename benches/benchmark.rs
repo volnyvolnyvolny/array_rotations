@@ -43,44 +43,6 @@ fn test(rotate: unsafe fn(left: usize, mid: *mut usize, right: usize), left: usi
     // }
 }
 
-fn test_swap<T>(swap: unsafe fn(x: *mut T, y: *mut T, count: usize), x: *mut T, y: *mut T, count: usize){
-//    if left <= right {
-        unsafe{ swap(x, y, count) }
-        // unsafe{ rotate(right, p.add(right - left), left) }
-    // } else {
-        // unsafe{ rotate(left, p, right) }
-        // unsafe{ rotate(right, p.sub(left - right), left) }
-    // }
-}
-
-unsafe fn contrev_swap<T>(x: *mut T, _y: *mut T, count: usize) {
-    ptr_contrev_rotate(count, x.add(count), count);
-}
-
-fn case_swap_nonoverlapping(c: &mut Criterion, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("Nonoverlapping swaps").as_str());
-    let mut v = seq(*ls.into_iter().max().unwrap());
-
-    for l in ls {
-        let x =
-            unsafe {
-                let x = &v[..].as_mut_ptr();
-                x.clone()
-            };
-
-        let y = unsafe{ x.add(l / 2) };
-
-        group.bench_with_input(BenchmarkId::new("Default", l), l, |b, l| b.iter(||
-            test_swap(ptr::swap_nonoverlapping::<usize>, x, y, l / 2)
-        ));
-        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| b.iter(||      
-            test_swap(contrev_swap::<usize>, x, y, l / 2)
-        ));
-    }
-
-    group.finish();
-}
-
 fn case_grail_vs_drill_vs_helix_vs_piston_vs_bridge(c: &mut Criterion, len: usize, ls: &[usize]) {
     let mut group = c.benchmark_group(format!("Rotations (GM vs Grail vs Drill vs Helix vs Piston vs Bridge) (len = {len})").as_str());
     let mut v = seq(len);
