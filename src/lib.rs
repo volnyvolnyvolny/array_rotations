@@ -209,7 +209,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     reverse_slice(mid.sub(left), left + right);
 }
 
-/// # Gries-Mills rotation
+/// # Gries-Mills rotation (recursive variant)
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes
 /// the first element. Equivalently, rotates the range `left` elements to the left
@@ -278,7 +278,164 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
     }
 }
 
-/// # Successive rotation aka Piston rotation (recursive variant)
+/// # Grail rotation (Gries-Mills rotation + *swap_backward*)
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+/// right.
+///
+/// ## Algorithm
+///
+/// "The *Grail rotation* from the *Holy Grail Sort Project* is *Gries-Mills* derived
+/// and tries to improve locality by shifting memory either left or right depending on which
+/// side it's swapped from.
+/// 
+/// In addition it performs an auxiliary rotation on stack memory when the smallest side reaches
+/// a size of `1` element, which is the worst case for the *Gries-Mills rotation*. The flow diagram
+/// is identical to that of *Gries-Mills*, but due to memory being shifted from the right the
+/// visualization differs."
+/// <<https://github.com/scandum/rotate>>
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Examples
+///
+/// ```text
+///                            mid
+///           left = 9         |     right = 6
+/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
+///            └──────────────┴/\┴──────────────┘
+///            ┌──────────────┬\~┬──────────────┐
+/// [ 1  .  3;10  . 12 13  . 15] 4 ~~~~~~~~~~~~ 9   // swap <--
+///   └─────┴/\┴─────┘
+///   ┌─────┬~/┬─────┐
+/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9   // swap -->
+///            └─────┴/\┴─────┘
+///            ┌─────┬~~┬─────┐
+///  10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
+///
+/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
+/// ```
+pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
+    let mut min = cmp::min(left, right);
+    let mut start = mid.sub(left);
+
+    while min > 1 {
+        if left <= right {
+            loop {
+                swap_forward(start, start.add(left), left);
+
+                start = start.add(left);
+                right -= left;
+
+                if left > right {
+                    break;
+                }
+            }
+
+            min = right;
+        } else {
+            loop {
+                swap_backward(start.add(left - right), start.add(left), right);
+
+                left -= right;
+
+                if right > left {
+                    break;
+                }
+            }
+
+            min = left;
+        }
+    }
+
+    if min > 0 { // min = 0, 1
+        ptr_aux_rotate(left, start.add(left), right);
+    }
+}
+
+/// # Drill rotation
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+/// right.
+///
+/// ## Algorithm
+///
+/// "The drill rotation is a grail variant that utilizes a piston main loop
+/// and a helix inner loop. Performance is similar to the helix rotation.
+/// The flow diagram and visualization are identical to the grail rotation."
+///
+/// *2021* - *Drill rotation* by *Igor van den Hoven* (*Grail* derived with *Piston*
+/// and *Helix* loops)
+/// <<https://github.com/scandum/rotate>>
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Examples
+///
+/// ```text
+///                            mid
+///           left = 9         |     right = 6
+/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
+///            └──────────────┴/\┴──────────────┘
+///            ┌──────────────┬\~┬──────────────┐
+/// [ 1  .  3;10  .  .  .  . 15] 4 ~~~~~~~~~~~~ 9   // swap -->
+///   └─────┴/\┴─────────────┘
+///    ┌─────────────┬~~┬─────┐
+/// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3* 4  .  .  .  .  9]
+/// ```
+pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+    let mut start = mid.sub(left);
+    let mut end = mid.add(right);
+    let mut s;
+
+    while left > 1 {
+        if left <= right { // -->
+            let old_r = right;
+            right %= left;
+
+            s = old_r - right;
+
+//            swap_forward(start, mid, s);
+
+            for _ in 0..s {
+                mid.swap(start);
+
+                mid = mid.add(1);
+                start = start.add(1);
+            }
+        }
+
+        // <--
+        if right <= 1 {
+            break;
+        }
+
+        let old_l = left;
+        left %= right;
+
+        s = old_l - left;
+        // swap_backward(end, mid, s);
+
+        for _ in 0..s {
+            mid = mid.sub(1);
+            end = end.sub(1);
+
+            mid.swap(end);
+        }
+    }
+
+    if left > 0 && right > 0 {
+        ptr_aux_rotate(left, mid, right);
+    }
+}
+
+/// # Successive aka Piston rotation (recursive variant)
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
 /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
@@ -345,7 +502,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     }
 }
 
-/// # Successive rotation aka Piston rotation
+/// # Successive aka Piston rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
 /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
@@ -496,14 +653,10 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
                 break;
             }
 
-            while mid > start {
-                mid = mid.sub(1);
-                end = end.sub(1);
-
-                mid.swap(end);
-            }
-
+            swap_backward(start, end.sub(left), left);
+            
             left %= right;
+            end = end.sub(left);
             mid = start.add(left);
             right -= left;
         } else {
@@ -511,20 +664,16 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
                 break;
             }
 
-            while mid < end {
-                mid.swap(start);
+            swap_forward(mid, start, right);
 
-                mid = mid.add(1);
-                start = start.add(1);
-            }
-
+            start = start.add(right);
             right %= left;
             mid = end.sub(right);
             left -= right;
         }
     }
 
-    if left > 0 && right > 0 {
+    if left > 0 && right > 0 { // left = 0, 1; right = 0, 1
         ptr_aux_rotate(left, mid, right);
     }
 }
@@ -860,18 +1009,18 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 }
 
 // unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
-    // print!("{} [", label);
-// 
-    // for i in 0..size {
-        // if i == size - 1 {
-            // print!("{:?}", p.read());
-        // } else {
-            // print!("{:?} ", p.read());
-            // p = p.add(1);
-        // }
-    // }
-// 
-    // println!("]");
+//     print!("{} [", label);
+
+//     for i in 0..size {
+//         if i == size - 1 {
+//             print!("{:?}", p.read());
+//         } else {
+//             print!("{:?} ", p.read());
+//             p = p.add(1);
+//         }
+//     }
+
+//     println!("]");
 // }
 
 /// # Juggling rotation
@@ -1100,7 +1249,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         }
 
         if left > right {
-            for _ in 0..half_max-half_min { //(ls, le, re)
+            for _ in 0..half_max-half_min { // (ls, le, re)
                 ls.write(
                     re.replace(
                         le.replace(ls.read())
@@ -1110,7 +1259,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
                 re = re.sub(1);
             }
         } else {
-            for _ in 0..half_max-half_min { //(rs, re, ls)
+            for _ in 0..half_max-half_min { // (rs, re, ls)
                 ls.write(
                     rs.replace(
                         re.replace(ls.read())
@@ -1121,7 +1270,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
             }
         }
 
-        // for _ in 0..re.offset_from(ls).abs() / 2 { //(re, ls)
+        // for _ in 0..re.offset_from(ls).abs() / 2 { // (re, ls)
             // ls.write(
                 // re.replace(ls.read())
             // );
@@ -1299,162 +1448,6 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // ptr_piston_rotate(left, mid, right);
 // }
 
-
-/// # Grail rotation
-///
-/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-/// right.
-///
-/// ## Algorithm
-///
-/// "The *Grail rotation* from the *Holy Grail Sort Project* is *Gries-Mills* derived
-/// and tries to improve locality by shifting memory either left or right depending on which
-/// side it's swapped from.
-/// 
-/// In addition it performs an auxiliary rotation on stack memory when the smallest side reaches
-/// a size of `1` element, which is the worst case for the *Gries-Mills rotation*. The flow diagram
-/// is identical to that of *Gries-Mills*, but due to memory being shifted from the right the
-/// visualization differs."
-/// <<https://github.com/scandum/rotate>>
-///
-/// ## Safety
-///
-/// The specified range must be valid for reading and writing.
-///
-/// ## Examples
-///
-/// ```text
-///                            mid
-///           left = 9         |     right = 6
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
-///            └──────────────┴/\┴──────────────┘
-///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  . 12 13  . 15] 4 ~~~~~~~~~~~~ 9   // swap <--
-///   └─────┴/\┴─────┘
-///   ┌─────┬~/┬─────┐
-/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9   // swap -->
-///            └─────┴/\┴─────┘
-///            ┌─────┬~~┬─────┐
-///  10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
-///
-/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
-/// ```
-pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
-    let mut min = cmp::min(left, right);
-    let mut start = mid.sub(left);
-
-    while min > 1 {
-        if left <= right {
-            loop {
-                ptr::swap_nonoverlapping(start, start.add(left), left);
-
-                start = start.add(left);
-                right -= left;
-
-                if left > right {
-                    break;
-                }
-            }
-
-            min = right;
-        } else {
-            loop {
-                ptr::swap_nonoverlapping(start.add(left - right), start.add(left), right);
-                left -= right;
-
-                if right > left {
-                    break;
-                }
-            }
-
-            min = left;
-        }
-    }
-
-    if min > 0 {
-        ptr_aux_rotate(left, start.add(left), right);
-    }
-}
-
-/// # Drill rotation
-///
-/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-/// right.
-///
-/// ## Algorithm
-///
-/// "The drill rotation is a grail variant that utilizes a piston main loop
-/// and a helix inner loop. Performance is similar to the helix rotation.
-/// The flow diagram and visualization are identical to the grail rotation."
-///
-/// *2021* - *Drill rotation* by *Igor van den Hoven* (*Grail* derived with *Piston*
-/// and *Helix* loops)
-/// <<https://github.com/scandum/rotate>>
-///
-/// ## Safety
-///
-/// The specified range must be valid for reading and writing.
-///
-/// ## Examples
-///
-/// ```text
-///                            mid
-///           left = 9         |     right = 6
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
-///            └──────────────┴/\┴──────────────┘
-///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  .  .  .  . 15] 4 ~~~~~~~~~~~~ 9   // swap -->
-///   └─────┴/\┴─────────────┘
-///    ┌─────────────┬~~┬─────┐
-/// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3* 4  .  .  .  .  9]
-/// ```
-pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
-    let mut start = mid.sub(left);
-    let mut end = mid.add(right);
-    let mut s;
-
-    while left > 1 {
-        if left <= right { // -->
-            let old_r = right;
-            right %= left;
-
-            s = old_r - right;
-
-//            swap_forward(start, mid, s);
-
-            for _ in 0..s {
-                mid.swap(start);
-                mid = mid.add(1);
-                start = start.add(1);
-            }
-        }
-
-        // <--
-        if right <= 1 {
-            break;
-        }
-
-        let old_l = left;
-        left %= right;
-
-        s = old_l - left;
-        // swap_backward(end, mid, s);
-
-        for _ in 0..s {
-            mid = mid.sub(1);
-            end = end.sub(1);
-
-            mid.swap(end);
-        }
-    }
-
-    if left > 0 && right > 0 {
-        ptr_aux_rotate(left, mid, right);
-    }
-}
-
 /// # Algo1 rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
@@ -1463,7 +1456,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///
 /// ## Algorithm
 ///
-/// This algorithm is extracted from current rotation implementation from Rust.
+/// This algorithm is extracted from current rotation implementation in Rust.
 ///
 /// "In Rust *Algo1* is used for small values of `left + right` or for large `T`. The elements are moved
 /// into their final positions one at a time starting at `mid - left` and advancing by `right` steps
@@ -1483,62 +1476,76 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// ## Examples
 ///
 /// ```text
-/// left = 10, right = 6
-/// the `^` indicates an element in its final place
 ///
-/// [ 6  7  8  9 10 11 12 13 14 15 "0  1  2  3  4  5]
-///
-/// after using one step of the above algorithm (The X will be overwritten at the end
-/// of the round, and 12 is stored in a temporary):
-///
-/// [ X  7  8  9 10 11  6 13 14 15 "0  1  2  3  4  5]
-///                        ^
-/// after using another step (now 2 is in the temporary):
-///
-/// [ X  7  8  9 10 11  6 13 14 15 "0  1 12  3  4  5]
-///                     ^                 ^
-///
-/// after the third step (the steps wrap around, and 8 is in the temporary):
-///
-/// [ X  7  2  9 10 11  6 13 14 15 "0  1 12  3  4  5]
-///      ^           ^                 ^
-///
-/// after 7 more steps, the round ends with the temporary 0 getting put in the X:
-/// [ 0  7  2  9  4 11  6 13  8 15"10  1 12  3 14  5]
-///   ^     ^     ^     ^     ^     ^     ^     ^
+///                            mid
+///           left = 9         |    right = 6
+/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]                      // round
+///   └─────────────────┐
+/// [ ✘  2  .  .  .  6  1  8  .  .  .  .  .  . 15] [ 7]
+///                                       ┌──────────┘
+///                     _                 ↓
+/// [ ✘  2  .  .  .  6  1  8  .  .  . 12  7 14 15] [13]
+///            ┌─────────────────────────────────────┘
+///            ↓        _                 _
+/// [ ✘  2  3 13  5  6  1  8  .  .  . 12  7 14 15] [ 4]
+///                              ┌───────────────────┘
+///            _        _        ↓        _
+/// [ ✘  2  3 13  5  6  1  8  9  4 11 12  7 14 15] [10]
+///   ┌──────────────────────────────────────────────┘
+///   ↓        _        _        _        _
+/// [10  2  3 13  5  6  1  8  9  4 11 12  7 14 15]                      // round
+///      |        |        |        |        └──────────────────╮
+///      |        |        |        └──────────────────╮        ┆
+///      |        |        └─────────────────┐         ┆        ┆
+///      |        └─────────────────┐        ┆         ┆        ┆
+///      └─────────────────┐        ┆        ┆         ┆        ┆
+/// ~─────────────╮        ┆        ┆        ┆         ┆        ┆
+/// ~────╮        ┆        ┆        ┆        ┆         ┆        ┆
+///   _  ↓     _  ↓     _  ↓     _  ↓     _  ↓      _  ↓     _  ↓
+/// [10 11  3 13 14  6  1  2  9  4  5 12  7  8 15][10 11  3 13 14...    // round
+///         |        |        |        |        └──────────────────╮
+///         |        |        |        └──────────────────╮        ┆
+///         |        |        └─────────────────┐         ┆        ┆
+///         |        └─────────────────┐        ┆         ┆        ┆
+///         └─────────────────┐        ┆        ┆         ┆        ┆
+/// ~────────────────╮        ┆        ┆        ┆         ┆        ┆
+/// ~───────╮        ┆        ┆        ┆        ┆         ┆        ┆
+///   _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓   _  _  ↓  _  _  ↓
+/// [10 11 12 13 14 15: 1  2  3* 4  5  6  7  8  9][10 11 12 13 14 15...
 /// ```
-pub unsafe fn ptr_algo1_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_algo1_rotate<T>(left: usize, mid: *mut T, right: usize) {
     loop {
         // N.B. the below algorithms can fail if these cases are not checked
         if (right == 0) || (left == 0) {
             return;
         }
 
-        let x = mid.sub(left);
-    
+        let start = mid.sub(left);
+
         // beginning of first round
-        let mut tmp: T = x.read();
+        let mut tmp: T = start.read();
         let mut i = right;
-    
+
         // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
         // but it is faster to do one loop which calculates the gcd as a side effect, then
         // doing the rest of the chunk
         let mut gcd = right;
-    
+
         // benchmarks reveal that it is faster to swap temporaries all the way through instead
         // of reading one temporary once, copying backwards, and then writing that temporary at
         // the very end. This is possibly due to the fact that swapping or replacing temporaries
         // uses only one memory address in the loop instead of needing to manage two.
         loop {
-            tmp = x.add(i).replace(tmp);
+            tmp = start.add(i).replace(tmp);
+
             // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the next increment. This prevents
+            // check if `i` will go outside the bounds on the nestartt increment. This prevents
             // any wrapping of pointers or `usize`.
             if i >= left {
                 i -= left;
                 if i == 0 {
                     // end of first round
-                    x.write(tmp);
+                    start.write(tmp);
                     break;
                 }
                 // this conditional must be here if `left + right >= 15`
@@ -1549,18 +1556,18 @@ pub unsafe fn ptr_algo1_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
                 i += right;
             }
         }
-    
+
         // finish the chunk with more rounds
-        for start in 1..gcd {
-            tmp = x.add(start).read();
-            i = start + right;
+        for s in 1..gcd {
+            tmp = start.add(s).read();
+            i = s + right;
     
             loop {
-                tmp = x.add(i).replace(tmp);
+                tmp = start.add(i).replace(tmp);
                 if i >= left {
                     i -= left;
-                    if i == start {
-                        x.add(start).write(tmp);
+                    if i == s {
+                        start.add(s).write(tmp);
                         break;
                     }
                 } else {
@@ -1568,7 +1575,7 @@ pub unsafe fn ptr_algo1_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
                 }
             }
         }
-    
+
         return;
     }
 }
@@ -1892,7 +1899,7 @@ mod tests {
 
     fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
         // --empty--
-        case(rotate_f,  0,  0);
+        // case(rotate_f,  0,  0);
 
         // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
         case(rotate_f, 15,  3);

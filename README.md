@@ -101,9 +101,8 @@ Otherwise, algorithm fallbacks to *auxiliary*.
 Case `left > right`:
 
 ```text
-                  
                   dim      mid
-         left = 9 | 𝑏𝑟𝑖𝑑𝑔𝑒 |   right = 6
+         left = 9 | 𝑏𝑟𝑖𝑑𝑔𝑒   |   right = 6
 [ 1  2  3  4  5  6: 7-9    *10 11 12 13 14 15]
                     └─┴────────────────────────────┬─────┐
   a-->              b-->     c-->                  |     |
@@ -140,7 +139,7 @@ Case `left < right`:
 
 ```text
                   mid      dim
-      left = 6    | 𝑏𝑟𝑖𝑑𝑔𝑒 |  right = 9
+      left = 6    | 𝑏𝑟𝑖𝑑𝑔𝑒   |  right = 9
 [10 11 12 13 14 15*     1-3: 4  5  6  7  8  9]
                         └─┴────────────────────────┬─────┐
                     b        c              d      |     |
@@ -173,7 +172,7 @@ Case `left < right`:
 [ 1 ~~~ 3  4  .  6* 7  .  9:10  .  .  .  . 15]
 ```
 
-## Juggling rotation
+## 🤹 Juggling rotation
 
 "Also known as the dolphin algorithm. This is a relatively complex
 and inefficient way to rotate in-place, though it does so in the
@@ -216,7 +215,7 @@ a chain of consecutive swaps."[^1]
 [10  . 12  .  . 15: .  .  3* .  .  6  .  .  9][ .  . 12  .  . 15...
 ```
 
-## Triple reversal rotation
+## ▽ Triple reversal rotation
 
 "This is an easy and reliable way to rotate in-place. You reverse the
 left side, next you reverse the right side, next you reverse the entire
@@ -237,7 +236,7 @@ no known first publication, but it was prior to *1981*."[^1]
 [10 11 12 13 14 15 :1  2  3* 4  5  6  7  8  9]
 ```
 
-## Gries-Mills rotation
+## ↬ Gries-Mills rotation
 
 "In some cases this rotation outperforms the classic triple reversal rotation
 while making fewer moves. You swap the smallest array linearly towards its
@@ -272,9 +271,9 @@ to `0` elements. Its first known publication was in *1981* by *David Gries* and
 [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 ```
 
-## Grail rotation
+## 🏆 Grail (Gries-Mills + *swap_backward*) rotation
 
-"The grail rotation from the Holy *Grail Sort Project* is *Gries-Mills* derived
+"The grail rotation from the Holy *Grail Sort Project*[^2] is *Gries-Mills* derived
 and tries to improve locality by shifting memory either left or right depending on which
 side it's swapped from.
 
@@ -286,23 +285,29 @@ visualization differs."[^1]
 ### Examples
 
 ```text
-                           mid
-          left = 9         |     right = 6
-[ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
+                 𝑠ℎ𝑎𝑑𝑜𝑤    mid
+          left = 9         |    right = 6
+[ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap r-side and shadow
            └──────────────┴/\┴──────────────┘
            ┌──────────────┬\~┬──────────────┐
-[ 1  .  3;10  . 12 13  . 15] 4 ~~~~~~~~~~~~ 9   // swap <--
+[ 1  .  3 10  .  .  .  . 15  4 ~~~~~~~~~~~~ 9]
+
+   l = 3     𝑠ℎ. r = 6
+[ 1  .  3*10  . 12:13  . 15] 4  .  .  .  .  9   // swap new l-side and new shadow
   └─────┴/\┴─────┘
   ┌─────┬~/┬─────┐
-[10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9   // swap -->
-           └─────┴/\┴─────┘
-           ┌─────┬~~┬─────┐
- 10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
+[10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9
 
-[10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
+           l = 3    r = 3
+ 10 ~~ 12[ 1  .  3;13  . 15] 4  .  .  .  .  9   // swap equal
+          └──────┴/\┴─────┘
+          ┌──────┬~~┬─────┐
+ 10 ~~ 12[13 ~~~ 15 1 ~~~ 3] 4  .  .  .  .  9
+
+[10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 ```
 
-## Drill rotation
+## ⊛ Drill rotation
 
 "The drill rotation is a grail variant that utilizes a piston main loop
 and a helix inner loop. Performance is similar to the helix rotation.
@@ -325,7 +330,7 @@ and *Helix* loops).
 [ 10 ~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
 ```
 
-## Successive rotation aka Piston rotation
+## 🪠 Successive aka Piston rotation
 
 "First described by *Gries and Mills* in *1981*, this rotation is very similar to
 the Gries-Mills rotation but performs non-linear swaps. It is implemented as
@@ -367,7 +372,7 @@ rightward rotation in each loop."[^1]
 [10  .  .  .  . 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 ```
 
-# Helix rotation
+# 🧬 Helix rotation
 
 "The helix rotation has similarities with the *Gries-Mills
 rotation* but has a distinct sequential movement pattern. It is
@@ -378,7 +383,7 @@ addition it doesn't stop when the smallest block no longer fits,
 but continues and recalculates the left or right side. The utilization
 of the merged loops is counter-intuitive and is likely novel. Its
 first known publication was in *2021* by *Control* from the *Holy Grail
-Sort Project*." <<https://github.com/scandum/rotate>>
+Sort Project*[^2]."[^1]
 
 ## Examples
 
@@ -414,7 +419,7 @@ Sort Project*." <<https://github.com/scandum/rotate>>
 
 ```
 
-## Contrev (Conjoined triple reversal) rotation
+## ⎊ Contrev (Conjoined triple reversal) rotation
 
 "The conjoined triple reversal is derived from the triple reversal rotation. Rather than three
 separate reversals it conjoins the three reversals, improving locality and reducing
@@ -511,7 +516,7 @@ Case: `left > right`, `8 - 7`.
 
 ## Combined rotations
 
-### Trinity (Conjoined triple reversal + Bridge) rotation
+### 🤞 Trinity (Conjoined triple reversal + Bridge) rotation
 
 "The trinity rotation (aka conjoined triple reversal) is derived from the triple reversal
 rotation. Rather than three separate reversals it conjoins the three reversals, improving
@@ -608,7 +613,7 @@ Case: `left > right`, `8 - 7`.
 [ 9  .  .  . 13 14 15: 1* 2  3  4  .  .  .  8]
 ```
 
-### Default (Stable) rotation
+### ŕ Default (Stable) rotation
 
 Combines juggler, auxiliary and piston rotations.
 
@@ -685,3 +690,5 @@ You would have to install `gnuplot` to get the pictures.
 Note that benchmarking could take some time :)
 
 [^1]: [https://github.com/scandum/rotate](https://github.com/scandum/rotate)
+
+[^2]: [https://github.com/HolyGrailSortProject](https://github.com/HolyGrailSortProject)
