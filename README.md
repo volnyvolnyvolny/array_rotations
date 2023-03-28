@@ -624,22 +624,41 @@ modulo `left + right`, such that only one temporary is needed. Eventually, we ar
 elements. For example:
 
 ```text
-left = 10, right = 6
-the `^` indicates an element in its final place
-6 7 8 9 10 11 12 13 14 15 . 0 1 2 3 4 5
-after using one step of the above algorithm (The X will be overwritten at the end of the round,
-and 12 is stored in a temporary):
-X 7 8 9 10 11 6 13 14 15 . 0 1 2 3 4 5
-               ^
-after using another step (now 2 is in the temporary):
-X 7 8 9 10 11 6 13 14 15 . 0 1 12 3 4 5
-              ^                 ^
-after the third step (the steps wrap around, and 8 is in the temporary):
-X 7 2 9 10 11 6 13 14 15 . 0 1 12 3 4 5
-    ^         ^                 ^
-after 7 more steps, the round ends with the temporary 0 getting put in the X:
-0 7 2 9 4 11 6 13 8 15 . 10 1 12 3 14 5
-^   ^   ^    ^    ^       ^    ^    ^
+                           mid
+          left = 9         |    right = 6
+[ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]                      // round
+  └─────────────────┐
+[ ✘  2  .  .  .  6  1  8  .  .  .  .  .  . 15] [ 7]
+                                      ┌──────────┘
+                    _                 ↓
+[ ✘  2  .  .  .  6  1  8  .  .  . 12  7 14 15] [13]
+           ┌─────────────────────────────────────┘
+           ↓        _                 _
+[ ✘  2  3 13  5  6  1  8  .  .  . 12  7 14 15] [ 4]
+                             ┌───────────────────┘
+           _        _        ↓        _
+[ ✘  2  3 13  5  6  1  8  9  4 11 12  7 14 15] [10]
+  ┌──────────────────────────────────────────────┘
+  ↓        _        _        _        _
+[10  2  3 13  5  6  1  8  9  4 11 12  7 14 15]                      // round
+     |        |        |        |        └──────────────────╮
+     |        |        |        └──────────────────╮        ┆
+     |        |        └─────────────────┐         ┆        ┆
+     |        └─────────────────┐        ┆         ┆        ┆
+     └─────────────────┐        ┆        ┆         ┆        ┆
+~─────────────╮        ┆        ┆        ┆         ┆        ┆
+~────╮        ┆        ┆        ┆        ┆         ┆        ┆
+  _  ↓     _  ↓     _  ↓     _  ↓     _  ↓      _  ↓     _  ↓
+[10 11  3 13 14  6  1  2  9  4  5 12  7  8 15][10 11  3 13 14...    // round
+        |        |        |        |        └──────────────────╮
+        |        |        |        └──────────────────╮        ┆
+        |        |        └─────────────────┐         ┆        ┆
+        |        └─────────────────┐        ┆         ┆        ┆
+        └─────────────────┐        ┆        ┆         ┆        ┆
+~────────────────╮        ┆        ┆        ┆         ┆        ┆
+~───────╮        ┆        ┆        ┆        ┆         ┆        ┆
+  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓   _  _  ↓  _  _  ↓
+[10 11 12 13 14 15: 1  2  3* 4  5  6  7  8  9][10 11 12 13 14 15...
 ```
 
 Fortunately, the number of skipped over elements between finalized elements is always equal, so
