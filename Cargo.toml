@@ -1,14 +1,19 @@
 [package]
 name = "rust_rotates"
 version = "0.1.0"
+authors = ["Valentin Vasilev <volnyvolnyvolny@ya.ru>"]
 edition = "2021"
 
 [dev-dependencies]
 criterion = {version = "0.4", features = ["html_reports"]}
 
 [[bench]]
-name = "benchmark"
+name = "bench_rotations"
 harness = false
 
 [dependencies]
 gcd = "2.3.0"
+pprof = {version = "0.11.1", features =  ["flamegraph", "criterion"]}
+
+[profile.release]
+debug = true
