@@ -1114,8 +1114,13 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
-    let buf = v.as_mut_ptr();
+    type BufType = [usize; 32];
+
+    let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
+    let buf = rawarray.as_mut_ptr() as *mut T;
+
+    // let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
+    // let buf = v.as_mut_ptr();
 
     let bridge = left.abs_diff(right);
 
