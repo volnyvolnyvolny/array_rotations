@@ -1332,7 +1332,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    if left == 0 {
+    if left == 0 || right == 0 {
         return;
     }
 
@@ -2239,7 +2239,7 @@ mod tests {
         case(rotate_f, 15, 15);
 
         //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
-        case(rotate_f, 100000, 0);
+        case(rotate_f, 100_000, 0);
     }
 
     #[test]
