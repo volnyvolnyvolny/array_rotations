@@ -279,16 +279,17 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     
         let r = length - l;
 
-        // group.bench_with_input(BenchmarkId::new("Juggling", l), l, |b, l| b.iter(|| test(ptr_juggling_rotate::<usize>, l.clone(), p, r)));
-        group.bench_with_input(BenchmarkId::new("BridgeAdd1", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate_simple_add_1::<usize>, l.clone(), p, r)));
-        group.bench_with_input(BenchmarkId::new("Bridge", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate_simple::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| b.iter(|| test(ptr_contrev_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Algo1", l), l, |b, l| b.iter(|| test(ptr_algo1_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Juggling", l), l, |b, l| b.iter(|| test(ptr_juggling_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Bridge", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate::<usize>, l.clone(), p, r)));
     }
 
     group.finish();
 }
 
 fn bench_bridge_15(c: &mut Criterion) {
-    case_bridge(c, 15, &[6, 7]);
+    case_bridge(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 }
 
 fn bench_all(c: &mut Criterion) {
@@ -326,10 +327,10 @@ criterion_group! {
 
 //    config = Criterion::default().sample_size(500).measurement_time(Duration::new(120, 0));
     config = Criterion::default()
-             .sample_size(500)
-             .with_profiler(
-                  PProfProfiler::new(100, Output::Flamegraph(None))
-              );
+             .sample_size(500);
+             // .with_profiler(
+             //      PProfProfiler::new(100, Output::Flamegraph(None))
+             //  );
 
     targets = bench_all, bench_bridge_15
 }

@@ -1258,7 +1258,7 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    ptr_bridge_rotate_simple_add_1(left, mid, right);
+    ptr_bridge_rotate_simple(left, mid, right);
 }
 
 // unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
