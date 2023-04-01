@@ -80,9 +80,9 @@ pub unsafe fn swap_forward<T>(x: *mut T, y: *mut T, count: usize) {
     let x = x.cast::<MaybeUninit<T>>();
     let y = y.cast::<MaybeUninit<T>>();
 
-    let mut i = 0;
+    // let mut i = 0;
 
-    while i < count {
+    for i in 0..count {
         // SAFETY: By precondition, `i` is in-bounds because it's below `count`
         let x = unsafe { &mut *x.add(i) };
 
@@ -94,7 +94,7 @@ pub unsafe fn swap_forward<T>(x: *mut T, y: *mut T, count: usize) {
         ptr::write(x, b);
         ptr::write(y, a);
 
-        i += 1;
+        // i += 1;
     }
 }
 
@@ -142,9 +142,10 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
     let x = x.add(count); //.cast::<MaybeUninit<T>>();
     let y = y.add(count); //.cast::<MaybeUninit<T>>();
 
-    let mut i = 1;
+    // let mut i = 1;
 
-    while i <= count {
+    for i in 1..=count {
+    // while i <= count {
         // SAFETY: By precondition, `i` is in-bounds because it's below `count`
         let x = unsafe { &mut *x.sub(i) };
 
@@ -156,7 +157,7 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
         ptr::write(x, b);
         ptr::write(y, a);
 
-        i += 1;
+        // i += 1;
     }
 }
 
@@ -1016,7 +1017,7 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
     // }
 }
 
-/// # Bridge rotation (whithout Auxilary)
+/// # Bridge rotation (without Auxilary)
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
 /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
@@ -1131,24 +1132,18 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
     if left > right {
         ptr::copy_nonoverlapping(c, buf, bridge);
 
-        for _ in 0..right {
-            c.write(a.read());
-            a.write(b.read());
-            a = a.add(1);
-            b = b.add(1);
-            c = c.add(1);
+        for i in 0..right {
+            c.add(i).write(a.add(i).read());
+            a.add(i).write(b.add(i).read());
         }
 
         ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
     } else if left < right {
         ptr::copy_nonoverlapping(b, buf, bridge);
 
-        for _ in 0..left {
-            b = b.sub(1);
-            c = c.sub(1);
-            d = d.sub(1);
-            c.write(d.read());
-            d.write(b.read());
+        for i in 1..=left {
+            c.sub(i).write(d.sub(i).read());
+            d.sub(i).write(b.sub(i).read());
         }
 
         ptr::copy_nonoverlapping(buf, a, bridge);
@@ -1263,7 +1258,7 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    ptr_bridge_rotate_simple(left, mid, right);
+    ptr_bridge_rotate_simple_add_1(left, mid, right);
 }
 
 // unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {

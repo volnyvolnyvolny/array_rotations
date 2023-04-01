@@ -264,8 +264,8 @@ fn test(rotate: unsafe fn(left: usize, mid: *mut usize, right: usize), left: usi
 // }
 
 fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group("bridge");
-    group.throughput(Throughput::Elements(length as u64));
+    let mut group = c.benchmark_group("Bridge");
+//    group.throughput(Throughput::Elements(length as u64));
 
     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
     let mut v = seq(length);
@@ -279,22 +279,23 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     
         let r = length - l;
 
-        group.bench_with_input(BenchmarkId::new("Juggling", l), l, |b, l| b.iter(|| test(ptr_juggling_rotate::<usize>, l.clone(), p, r)));
-        group.bench_with_input(BenchmarkId::new("Bridge", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate::<usize>, l.clone(), p, r)));
+        // group.bench_with_input(BenchmarkId::new("Juggling", l), l, |b, l| b.iter(|| test(ptr_juggling_rotate::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("BridgeAdd1", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate_simple_add_1::<usize>, l.clone(), p, r)));
+        group.bench_with_input(BenchmarkId::new("Bridge", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate_simple::<usize>, l.clone(), p, r)));
     }
 
     group.finish();
 }
 
 fn bench_bridge_15(c: &mut Criterion) {
-    case_bridge(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_bridge(c, 15, &[6, 7]);
 }
 
 fn bench_all(c: &mut Criterion) {
     // case_all(c,   10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     // case_all(c,  100, &[0, 1, 16, 32, 33, 40, 50, 60, 67, 68, 100]);
     // case_all(c, 1000, &[0, 32, 33, 100, 200, 300, 400, 500, 600, 700, 800, 900, 967, 968, 1000]);
-    case_bridge(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+//    case_bridge(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     // case_all(c, 10000, &[1, 16, 32, 33, 40, 50, 60, 68, 69, 84, 100]);
     // case_all(c, 100000, &[1, 16, 32, 33, 40, 50, 60, 68, 69, 84, 100]);
     // case_all(c, 1000000, &[1, 16, 32, 33, 40, 50, 60, 68, 69, 84, 100]);
