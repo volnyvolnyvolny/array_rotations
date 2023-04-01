@@ -44,7 +44,7 @@ use gcd::Gcd;
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -106,7 +106,7 @@ pub unsafe fn swap_forward<T>(x: *mut T, y: *mut T, count: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -145,7 +145,7 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
     // let mut i = 1;
 
     for i in 1..=count {
-    // while i <= count {
+        // while i <= count {
         // SAFETY: By precondition, `i` is in-bounds because it's below `count`
         let x = unsafe { &mut *x.sub(i) };
 
@@ -180,7 +180,7 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -197,16 +197,16 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-       let slice = slice::from_raw_parts_mut(p, size);
-       slice.reverse();
+        let slice = slice::from_raw_parts_mut(p, size);
+        slice.reverse();
     }
 
     reverse_slice(mid.sub(left), left);
-    reverse_slice(mid,           right);
+    reverse_slice(mid, right);
     reverse_slice(mid.sub(left), left + right);
 }
 
@@ -235,7 +235,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -263,7 +263,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if (right == 0) || (left == 0) {
@@ -290,7 +290,7 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 /// "The *Grail rotation* from the *Holy Grail Sort Project* is *Gries-Mills* derived
 /// and tries to improve locality by shifting memory either left or right depending on which
 /// side it's swapped from.
-/// 
+///
 /// In addition it performs an auxiliary rotation on stack memory when the smallest side reaches
 /// a size of `1` element, which is the worst case for the *Gries-Mills rotation*. The flow diagram
 /// is identical to that of *Gries-Mills*, but due to memory being shifted from the right the
@@ -323,7 +323,7 @@ pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
     let mut min = cmp::min(left, right);
     let mut start = mid.sub(left);
 
-    while min > 1 {
+    while min > 0 {
         if left <= right {
             loop {
                 swap_forward(start, start.add(left), left);
@@ -352,9 +352,9 @@ pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
         }
     }
 
-    if min > 0 { // min = 0, 1
-        ptr_aux_rotate(left, start.add(left), right);
-    }
+    // if min > 0 { // min = 0, 1
+    //     ptr_aux_rotate(left, start.add(left), right);
+    // }
 }
 
 /// # Drill rotation
@@ -395,14 +395,15 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     let mut end = mid.add(right);
     let mut s;
 
-    while left > 1 {
-        if left <= right { // -->
+    while left > 0 {
+        if left <= right {
+            // -->
             let old_r = right;
             right %= left;
 
             s = old_r - right;
 
-//            swap_forward(start, mid, s);
+            //            swap_forward(start, mid, s);
 
             for _ in 0..s {
                 mid.swap(start);
@@ -413,7 +414,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
 
         // <--
-        if right <= 1 {
+        if right < 1 {
             break;
         }
 
@@ -431,9 +432,9 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
     }
 
-    if left > 0 && right > 0 {
-        ptr_aux_rotate(left, mid, right);
-    }
+    // if left > 0 && right > 0 {
+    //     ptr_aux_rotate(left, mid, right);
+    // }
 }
 
 /// # Successive aka Piston rotation (recursive variant)
@@ -459,7 +460,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -487,7 +488,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if (right == 0) || (left == 0) {
@@ -526,7 +527,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// # Example
 ///
@@ -554,7 +555,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     let mut l = left as isize;
@@ -638,7 +639,7 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if (right == 0) || (left == 0) {
@@ -655,7 +656,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
             }
 
             swap_backward(start, end.sub(left), left);
-            
+
             left %= right;
             end = end.sub(left);
             mid = start.add(left);
@@ -674,8 +675,9 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
     }
 
-    if left > 0 && right > 0 { // left = 0, 1; right = 0, 1
-        ptr_aux_rotate(left, mid, right);
+    if left > 0 && right > 0 {
+        // left = 0, 1; right = 0, 1
+        ptr_direct_rotate(left, mid, right);
     }
 }
 
@@ -695,7 +697,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// ## Example
 ///
@@ -710,7 +712,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///   ┌──────────────┬──────────────────────────────────┴──┘
 /// [10 ~~~~~~~~~~~ 15 :1  .  3* 4  .  .  .  .  9]
 /// ```
-/// 
+///
 /// ```text
 ///                                  mid
 ///           left = 11              | right = 4
@@ -722,9 +724,9 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///   ┌────────┬────────────────────────────────────────┴──┘
 /// [12 ~~~~~ 15: 1  .  .  .  .  .  7* 8  .  . 11]
 /// ```
-/// 
+///
 /// ```text
-///             mid 
+///             mid
 ///    left = 4 |           right = 11
 /// [      12-15* 1  2  3  4  5  6  7: 8  9 10 11]                // move
 ///         └──┴────────────────────────────────────────┬─────┐
@@ -734,18 +736,16 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///                                    ┌────────┬───────┴──┘
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
-pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
+pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if (right == 0) || (left == 0) {
         return;
     }
 
-    let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
-    let buf = v.as_mut_ptr();
-
+    let buf = buffer.as_mut_ptr();
     let dim = mid.sub(left).add(right);
 
     if left <= right {
@@ -784,7 +784,7 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// The specified range must be valid for reading and writing.
 ///
 /// # Examples:
 ///
@@ -924,9 +924,8 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [13  2  3  1  ✘  6  .  .  .  .  . 12  ✘ 14 15]    [4  5]
 ///      └────────┐                          |
 ///      ╭─────── ┆──────────────────────────╯
-///   _  ↓     _  ↓ 
+///   _  ↓     _  ↓
 /// [13 14  3  1  2  6  .  .  .  .  . 12  ✘  ✘ 15]    [4  5]
-
 
 ///   _  _     _  _                       ┌──┬─────────┴──┘
 /// [13 14  3  1  2  6  7  .  .  .  . 12  4  5 15]    [✘  ✘]
@@ -935,21 +934,15 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [13 14  3  1  2  ✘  ✘  8  .  .  . 12  4  5 15]    [6  7]
 ///         └────────┐                          |
 ///         ╭─────── ┆──────────────────────────╯
-///   _  _  ↓  _  _  ↓ 
+///   _  _  ↓  _  _  ↓
 /// [13 14 15  1  2  3  ✘  8  .  .  . 12  4  5  ✘]    [6  7]
-
-
 
 ///                     └──┴─────────────/\────────────┴──┘
 ///                     ┌──┬─────────────~~────────────┬──┐
 ///   _  _  a-->  _  b-->  |                    c-->   |  |
 /// [13 14  3  1  2  6  4  5  .  .  . 12  ✘  ✘ 15]    [7  8]
 
-
-
-
 ///   _  _           _  _           ┌──┬───────────────┴──┘
-
 
 /// [13 14  3  .  5  1  2  8  9 10  6  7 13  . 15]    [✘  ✘]
 ///                        └──┴────────────────────────┬──┐
@@ -975,47 +968,47 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///   _  _  _  _  _  _  _  _  _  _  _  _  _  _  ┌───────┘
 /// [13  .  .  . 15  1  .  .  .  .  .  .  .  9 10]
 /// ```
-unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer: Vec::<T>) {
-    // // if T::IS_ZST {
-    //     // return;
-    // // }
+// unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer: Vec<T>) {
+//     // // if T::IS_ZST {
+//     //     // return;
+//     // // }
 
-    // if (right == 0) || (left == 0) {
-    //     return;
-    // }
+//     // if (right == 0) || (left == 0) {
+//     //     return;
+//     // }
 
-    // let buffer = buffer.as_mut_ptr();
-    // let bridge = left.abs_diff(right);
+//     // let buffer = buffer.as_mut_ptr();
+//     // let bridge = left.abs_diff(right);
 
-    // if bridge == 0 {
-    //     ptr::swap_nonoverlapping(mid.sub(left), mid, right);
-    // }
+//     // if bridge == 0 {
+//     //     ptr::swap_nonoverlapping(mid.sub(left), mid, right);
+//     // }
 
-    // let s = cmp::min(bridge, buffer.capacity());
+//     // let s = cmp::min(bridge, buffer.capacity());
 
-    // // if cmp::min(left, right) <= bridge {
-    //     // ptr_aux_rotate(left, mid, right);
-    //     // return;
-    // // }
-    
-    // let mut a = mid.sub(left);
-    // let mut b = mid.sub(bridge);
-    // let mut c = mid;
+//     // // if cmp::min(left, right) <= bridge {
+//     //     // ptr_aux_rotate(left, mid, right);
+//     //     // return;
+//     // // }
 
-    // for _ in 0..xzcd {
-    //     ptr::copy_nonoverlapping(c, buffer, bridge);
+//     // let mut a = mid.sub(left);
+//     // let mut b = mid.sub(bridge);
+//     // let mut c = mid;
 
-    //     for _ in 0..right {
-    //         c.write(a.read());
-    //         a.write(b.read());
-    //         a = a.add(1);
-    //         b = b.add(1);
-    //         c = c.add(1);
-    //     }
+//     // for _ in 0..xzcd {
+//     //     ptr::copy_nonoverlapping(c, buffer, bridge);
 
-    //     ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
-    // }
-}
+//     //     for _ in 0..right {
+//     //         c.write(a.read());
+//     //         a.write(b.read());
+//     //         a = a.add(1);
+//     //         b = b.add(1);
+//     //         c = c.add(1);
+//     //     }
+
+//     //     ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
+//     // }
+// }
 
 /// # Bridge rotation (without Auxilary)
 ///
@@ -1032,7 +1025,8 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// 1. The specified range must be valid for reading and writing;
+/// 2. The `buffer` length must be larger than `|right - left|`.
 ///
 /// # Example:
 ///
@@ -1070,7 +1064,7 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
 ///                                       ┌─────┬──────┴─┘
 /// [10  .  .  .  . 15: 1  .  3* 4  .  6  7 ~~~ 9]
 /// ```
-/// 
+///
 /// ```text
 ///                   mid
 ///       left = 6    |           right = 9
@@ -1105,34 +1099,31 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
 ///   ┌─────┬──────────────────────────────────────────┴─┘
 /// [ 1 ~~~ 3  4  .  6* 7  .  9:10  .  .  .  . 15]
 /// ```
-unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
+unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if (right == 0) || (left == 0) {
         return;
     }
 
-    type BufType = [usize; 32];
+    // type BufType = [usize; 32];
+    // let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
+    // let buf = rawarray.as_mut_ptr() as *mut T;
 
-    let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
-    let buf = rawarray.as_mut_ptr() as *mut T;
-
-    // let mut v = Vec::<T>::with_capacity(cmp::min(left, right));
-    // let buf = v.as_mut_ptr();
-
+    let buf = buffer.as_mut_ptr();
     let bridge = left.abs_diff(right);
 
     // if cmp::min(left, right) <= bridge {
-        // ptr_aux_rotate(left, mid, right);
-        // return;
+    // ptr_aux_rotate(left, mid, right);
+    // return;
     // }
 
-    let mut a = mid.sub(left);
-    let mut b = mid;
-    let mut c = mid.sub(left).add(right);
-    let mut d = mid.add(right);
+    let a = mid.sub(left);
+    let b = mid;
+    let c = mid.sub(left).add(right);
+    let d = mid.add(right);
 
     if left > right {
         ptr::copy_nonoverlapping(c, buf, bridge);
@@ -1182,7 +1173,8 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing. 
+/// 1. The specified range must be valid for reading and writing;
+/// 2. The `buffer` length must be larger than `min(|right - left|, left, right)`.
 ///
 /// # Example:
 ///
@@ -1220,7 +1212,7 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
 ///                                       ┌─────┬──────┴─┘
 /// [10  .  .  .  . 15: 1  .  3* 4  .  6  7 ~~~ 9]
 /// ```
-/// 
+///
 /// ```text
 ///                   mid
 ///       left = 6    |           right = 9
@@ -1255,15 +1247,15 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize) {
 ///   ┌─────┬──────────────────────────────────────────┴─┘
 /// [ 1 ~~~ 3  4  .  6* 7  .  9:10  .  .  .  . 15]
 /// ```
-pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
+pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     let bridge = left.abs_diff(right);
 
     if cmp::min(left, right) <= bridge {
-        ptr_aux_rotate(left, mid, right); 
+        ptr_aux_rotate(left, mid, right, buffer);
         return;
     }
 
-    ptr_bridge_rotate_simple(left, mid, right);
+    ptr_bridge_rotate_simple(left, mid, right, buffer);
 }
 
 // unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
@@ -1281,7 +1273,7 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 //     println!("]");
 // }
 
-/// # Juggling rotation
+/// # Direct aka Juggling aka Dolphin rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at
 /// `mid` becomes the first element. Equivalently, rotates the range
@@ -1289,9 +1281,10 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Algorithm
 ///
-/// "Also known as the dolphin algorithm. This is a relatively complex
-/// and inefficient way to rotate in-place, though it does so in the
-/// minimal number of moves. Its first known publication was in *1966*.
+/// "This is a relatively complex and inefficient way to rotate in-place,
+///  though it does so in the minimal number of moves.
+///
+///  Its first known publication was in *1966*.
 ///
 /// It computes the greatest common divisor and uses a loop to create
 /// a chain of consecutive swaps." <<https://github.com/scandum/rotate>>
@@ -1334,9 +1327,9 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///   _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓   _  _  ↓  _  _  ↓
 /// [10  . 12  .  . 15: .  .  3* .  .  6  .  .  9][ .  . 12  .  . 15...
 /// ```
-pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
+pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if left == 0 {
@@ -1349,8 +1342,6 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
     let mut a;
     let mut b;
-    let mut c = start;
-    let d = start.add(left.gcd(len));
 
     let mut tmp;
 
@@ -1397,7 +1388,7 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ## Example
 ///
 /// Case: `right > left`, `9 - 6`.
-/// 
+///
 /// ```text
 ///                            mid
 ///   ls-->               <--le|rs-->       <--re
@@ -1423,9 +1414,9 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
 /// [10  .  .  . 14 15: 1  2  3* 4  5  .  .  .  9]
 /// ```
-/// 
+///
 /// Case: `left < right`, `6 - 9`.
-/// 
+///
 /// ```text
 ///                   mid
 ///   ls-->      <--le|rs-->                <--re
@@ -1436,24 +1427,24 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 7<╯2  .  .  5 ╰1 15  8  .  .  .  .  . 14  6]  // (re, rs, ls, le)
 ///      | ╭┈┈┈┈┈ ┆┈┈┈┈┈┈┈┈╯        ╭────────╯
 ///      ╰─┆ ───╮ ╰┈┈┈┈┈┈┈┈╭────────╯ ┈┈┈┈┈┈┈╮
-///        ┆lsle|          | rs          re  ↓ 
+///        ┆lsle|          | rs          re  ↓
 /// [ 7  8<╯3  4╰~2  1 15 14  9  .  .  . 13  5  6]
 ///         |╭ ┆┈┈┈┈┈┈┈┈┈┈┈╯        ╭─────╯
 ///         ╰┆╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭─────╯ ┈┈┈┈╮
-///          ┆┆ls             | rs    re  ↓ 
+///          ┆┆ls             | rs    re  ↓
 /// [ 7  .  9╯╰3  2  1 15 14 13 10 11 12  4  .  6]  // (re, rs, ls)
 ///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
 ///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ ls             | re  ↓ 
+///             ┆ ls             | re  ↓
 /// [ 7 ~~~~~ 10╯ 2  1 15 14 13 12 11  3 ~~~~~~ 6]  // (re, ls)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
 /// [ 7  .  .  . 11 12*13 14 15: 1  2  .  .  .  6]
 /// ```
-/// 
+///
 /// Case: `left > right`, `8 - 7`.
-/// 
+///
 /// ```text
 ///   ls-->            <--le rs-->          <--re
 /// [ 1  2  3  4  5  6  7: 8* 9 10 11 12 13 14 15]  // (ls -> le -> re -> rs -> ls)
@@ -1480,7 +1471,7 @@ pub unsafe fn ptr_juggling_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     if left == 0 || right == 0 {
@@ -1496,46 +1487,39 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         let half_min = cmp::min(left, right) / 2;
         let half_max = cmp::max(left, right) / 2;
 
-        for _ in 0..half_min { // Permutation (ls, le, re, rs)
-            ls.write(
-                rs.replace(
-                    re.replace(
-                        le.replace(ls.read())
-                    )
-                )
-            );
-            ls = ls.add(1); le = le.sub(1);
-            rs = rs.add(1); re = re.sub(1);
+        for _ in 0..half_min {
+            // Permutation (ls, le, re, rs)
+            ls.write(rs.replace(re.replace(le.replace(ls.read()))));
+            ls = ls.add(1);
+            le = le.sub(1);
+            rs = rs.add(1);
+            re = re.sub(1);
         }
 
         if left > right {
-            for _ in 0..half_max-half_min { // (ls, le, re)
-                ls.write(
-                    re.replace(
-                        le.replace(ls.read())
-                    )
-                );
-                ls = ls.add(1); le = le.sub(1);
+            for _ in 0..half_max - half_min {
+                // (ls, le, re)
+                ls.write(re.replace(le.replace(ls.read())));
+                ls = ls.add(1);
+                le = le.sub(1);
                 re = re.sub(1);
             }
         } else {
-            for _ in 0..half_max-half_min { // (rs, re, ls)
-                ls.write(
-                    rs.replace(
-                        re.replace(ls.read())
-                    )
-                );
+            for _ in 0..half_max - half_min {
+                // (rs, re, ls)
+                ls.write(rs.replace(re.replace(ls.read())));
                 ls = ls.add(1);
-                rs = rs.add(1); re = re.sub(1);
+                rs = rs.add(1);
+                re = re.sub(1);
             }
         }
 
         // for _ in 0..re.offset_from(ls).abs() / 2 { // (re, ls)
-            // ls.write(
-                // re.replace(ls.read())
-            // );
-            // ls = ls.add(1);
-            // re = re.sub(1);
+        // ls.write(
+        // re.replace(ls.read())
+        // );
+        // ls = ls.add(1);
+        // re = re.sub(1);
         // }
 
         let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
@@ -1551,7 +1535,8 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing.
+/// 1. The specified range must be valid for reading and writing;
+/// 2. The `buffer` length must be larger than `min(|right - left|, left, right)`.
 ///
 /// ## Algorithm
 ///
@@ -1565,7 +1550,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ## Example
 ///
 /// Case: `right > left`, `9 - 6`.
-/// 
+///
 /// ```text
 ///                            mid
 ///   ls-->               <--le|rs-->       <--re
@@ -1593,7 +1578,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 ///
 /// Case: `left < right`, `6 - 9`.
-/// 
+///
 /// ```text
 ///                   mid
 ///   ls-->      <--le|rs-->                <--re
@@ -1604,24 +1589,24 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 7<╯2  .  .  5 ╰1 15  8  .  .  .  .  . 14  6]  // (re, rs, ls, le)
 ///      | ╭┈┈┈┈┈ ┆┈┈┈┈┈┈┈┈╯        ╭────────╯
 ///      ╰─┆ ───╮ ╰┈┈┈┈┈┈┈┈╭────────╯ ┈┈┈┈┈┈┈╮
-///        ┆lsle|          | rs          re  ↓ 
+///        ┆lsle|          | rs          re  ↓
 /// [ 7  8<╯3  4╰~2  1 15 14  9  .  .  . 13  5  6]
 ///         |╭ ┆┈┈┈┈┈┈┈┈┈┈┈╯        ╭─────╯
 ///         ╰┆╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭─────╯ ┈┈┈┈╮
-///          ┆┆ls             | rs    re  ↓ 
+///          ┆┆ls             | rs    re  ↓
 /// [ 7  .  9╯╰3  2  1 15 14 13 10 11 12  4  .  6]  // (re, rs, ls)
 ///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
 ///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ ls             | re  ↓ 
+///             ┆ ls             | re  ↓
 /// [ 7 ~~~~~ 10╯ 2  1 15 14 13 12 11  3 ~~~~~~ 6]  // (re, ls)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
 /// [ 7  .  .  . 11 12*13 14 15: 1  2  .  .  .  6]
 /// ```
-/// 
+///
 /// Case: `left > right`, `8 - 7`.
-/// 
+///
 /// ```text
 ///                         mid
 ///   ls-->            <--le|rs-->          <--re
@@ -1647,22 +1632,20 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
 /// [ 9  .  .  . 13 14 15: 1* 2  3  4  .  .  .  8]
 /// ```
-pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    type BufType = [usize; 32];
-
+pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
-    if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
-        ptr_aux_rotate(left, mid, right);
+    if cmp::min(left, right) <= buffer.len() {
+        ptr_aux_rotate(left, mid, right, buffer);
         return;
     }
 
     let d = right.abs_diff(left);
 
-    if d <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() && d > 3 {
-        ptr_bridge_rotate(left, mid, right);
+    if d <= buffer.len() && d > 3 {
+        ptr_bridge_rotate(left, mid, right, buffer);
         return;
     }
 
@@ -1687,25 +1670,25 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize) {
 // /// 2. **Bridge rotation** — if the overlap fits in buffer;
 // /// 3. **Piston rotation** — otherwise.
 // pub unsafe fn ptr_comb_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // type BufType = [usize; 32];
-// 
-    // if T::IS_ZST {
-        // return;
-    // }
-// 
-    // if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
-        // ptr_aux_rotate(left, mid, right);
-        // return;
-    // }
-// 
-    // let d = right.abs_diff(left);
-// 
-    // if d <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() && d > 3 {
-        // ptr_bridge_rotate(left, mid, right);
-        // return;
-    // }
-// 
-    // ptr_piston_rotate(left, mid, right);
+// type BufType = [usize; 32];
+//
+// if T::IS_ZST {
+// return;
+// }
+//
+// if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
+// ptr_aux_rotate(left, mid, right);
+// return;
+// }
+//
+// let d = right.abs_diff(left);
+//
+// if d <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() && d > 3 {
+// ptr_bridge_rotate(left, mid, right);
+// return;
+// }
+//
+// ptr_piston_rotate(left, mid, right);
 // }
 
 /// # Algo1 (juggler) rotation
@@ -1820,7 +1803,7 @@ pub unsafe fn ptr_algo1_rotate<T>(left: usize, mid: *mut T, right: usize) {
         for s in 1..gcd {
             tmp = start.add(s).read();
             i = s + right;
-    
+
             loop {
                 tmp = start.add(i).replace(tmp);
                 if i >= left {
@@ -1933,7 +1916,7 @@ pub unsafe fn stable_ptr_rotate<T>(mut left: usize, mut mid: *mut T, mut right: 
     type BufType = [usize; 32];
 
     // if T::IS_ZST {
-        // return;
+    // return;
     // }
 
     loop {
@@ -2029,7 +2012,8 @@ pub unsafe fn stable_ptr_rotate<T>(mut left: usize, mut mid: *mut T, mut right: 
             }
             return;
         // `T` is not a zero-sized type, so it's okay to divide by its size.
-        } else if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
+        } else if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>()
+        {
             // Algorithm 2
             // The `[T; 0]` here is to ensure this is appropriately aligned for T
             let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
@@ -2073,7 +2057,7 @@ pub unsafe fn stable_ptr_rotate<T>(mut left: usize, mut mid: *mut T, mut right: 
             //            └──────────────┴──┬──────────────┐
             //    l = 3  mid                |    r = 6     |
             // [ 1  2  3,10 11 12 13 14 15  4  5  6  7  8  9]
-            //                         
+            //
             // There is an alternate way of swapping that involves finding where the last swap
             // of this algorithm would be, and swapping using that last chunk instead of swapping
             // adjacent chunks like this algorithm is doing, but this way is still faster.
@@ -2134,7 +2118,9 @@ mod tests {
 
     fn seq(size: usize) -> Vec<usize> {
         let mut v = vec![0; size];
-        for i in 0..size { v[i] = i+1; }
+        for i in 0..size {
+            v[i] = i + 1;
+        }
         v
     }
 
@@ -2159,13 +2145,38 @@ mod tests {
         }
     }
 
-    fn case(rotate: unsafe fn(left: usize, mid: *mut usize, right: usize), size: usize, diff: usize) {
+    fn buf_case(
+        buf_rotate: unsafe fn(left: usize, mid: *mut usize, right: usize, buffer: &mut [usize]),
+        size: usize,
+        diff: usize,
+        buffer: &mut [usize],
+    ) {
         let (vec, (l, p, r)) = prepare(size, diff);
 
         let mut s = seq(size);
 
         s.rotate_left(l);
-        unsafe{ rotate(l, p, r) };
+        unsafe { buf_rotate(l, p, r, buffer) };
+
+        assert_eq!(vec, s);
+
+        unsafe { buf_rotate(r, p.sub(diff), l, buffer) };
+
+        s.rotate_right(l);
+        assert_eq!(vec, s);
+    }
+
+    fn case(
+        rotate: unsafe fn(left: usize, mid: *mut usize, right: usize),
+        size: usize,
+        diff: usize,
+    ) {
+        let (vec, (l, p, r)) = prepare(size, diff);
+
+        let mut s = seq(size);
+
+        s.rotate_left(l);
+        unsafe { rotate(l, p, r) };
 
         assert_eq!(vec, s);
 
@@ -2175,21 +2186,51 @@ mod tests {
         assert_eq!(vec, s);
     }
 
-    fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
+    fn test_buf_correctness(
+        rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize, buffer: &mut [usize]),
+    ) {
+        let mut buffer = Vec::<usize>::with_capacity(100_000);
+
         // --empty--
-        // case(rotate_f,  0,  0);
+        buf_case(rotate_f, 0, 0, buffer.as_mut_slice());
 
         // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
-        case(rotate_f, 15,  3);
- 
+        buf_case(rotate_f, 15, 3, buffer.as_mut_slice());
+
         // 1  2  3  4  5  6  7 (8) 9 10 11 12 13 14 15
-        case(rotate_f, 15,  1);
- 
+        buf_case(rotate_f, 15, 1, buffer.as_mut_slice());
+
         // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
-        case(rotate_f, 14,  0);
+        buf_case(rotate_f, 14, 0, buffer.as_mut_slice());
 
         // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
-        case(rotate_f, 15,  7);
+        buf_case(rotate_f, 15, 7, buffer.as_mut_slice());
+
+        // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
+        buf_case(rotate_f, 15, 13, buffer.as_mut_slice());
+
+        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        buf_case(rotate_f, 15, 15, buffer.as_mut_slice());
+
+        //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
+        buf_case(rotate_f, 100_000, 0, buffer.as_mut_slice());
+    }
+
+    fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
+        // --empty--
+        case(rotate_f, 0, 0);
+
+        // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
+        case(rotate_f, 15, 3);
+
+        // 1  2  3  4  5  6  7 (8) 9 10 11 12 13 14 15
+        case(rotate_f, 15, 1);
+
+        // 1  2  3  4  5  6  7)(8  9 10 11 12 13 14
+        case(rotate_f, 14, 0);
+
+        // 1  2  3  4 (5  6  7  8  9 10 11)12 13 14 15
+        case(rotate_f, 15, 7);
 
         // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
         case(rotate_f, 15, 13);
@@ -2203,81 +2244,79 @@ mod tests {
 
     #[test]
     fn test_ptr_aux_rotate_correctness() {
-        test_correctness(ptr_aux_rotate::<usize>);
+        test_buf_correctness(ptr_aux_rotate::<usize>);
     }
 
     #[test]
     // default (stable) rust rotate
     fn test_ptr_rotate_correctness() {
-       test_correctness(stable_ptr_rotate::<usize>);
+        test_correctness(stable_ptr_rotate::<usize>);
     }
 
     // #[test]
     // fn test_ptr_bridge_rotate_simple_correctness() {
-       // test_correctness(ptr_bridge_rotate_simple::<usize>);
+    // test_correctness(ptr_bridge_rotate_simple::<usize>);
     // }
 
     #[test]
     fn test_ptr_bridge_rotate_correctness() {
-       test_correctness(ptr_bridge_rotate::<usize>);
+        test_buf_correctness(ptr_bridge_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_reversal_rotate_correctness() {
-       test_correctness(ptr_reversal_rotate::<usize>);
+        test_correctness(ptr_reversal_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_griesmills_rotate_rec_correctness() {
-       test_correctness(ptr_griesmills_rotate_rec::<usize>);
+        test_correctness(ptr_griesmills_rotate_rec::<usize>);
     }
 
     #[test]
     fn test_ptr_piston_rotate_rec_correctness() {
-       test_correctness(ptr_piston_rotate_rec::<usize>);
+        test_correctness(ptr_piston_rotate_rec::<usize>);
     }
 
     #[test]
     fn test_ptr_piston_rotate_correctness() {
-       test_correctness(ptr_piston_rotate::<usize>);
+        test_correctness(ptr_piston_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_contrev_rotate_correctness() {
-       test_correctness(ptr_contrev_rotate::<usize>);
+        test_correctness(ptr_contrev_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_trinity_rotate_correctness() {
-       test_correctness(ptr_trinity_rotate::<usize>);
+        test_buf_correctness(ptr_trinity_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_juggling_rotate_correctness() {
-       test_correctness(ptr_juggling_rotate::<usize>);
+        test_correctness(ptr_direct_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_helix_rotate_correctness() {
-       test_correctness(ptr_helix_rotate::<usize>);
+        test_correctness(ptr_helix_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_grail_rotate_correctness() {
-       test_correctness(ptr_grail_rotate::<usize>);
+        test_correctness(ptr_grail_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_drill_rotate_correctness() {
-       test_correctness(ptr_drill_rotate::<usize>);
+        test_correctness(ptr_drill_rotate::<usize>);
     }
 
     #[test]
     fn test_ptr_algo1_rotate_correctness() {
-       test_correctness(ptr_algo1_rotate::<usize>);
+        test_correctness(ptr_algo1_rotate::<usize>);
     }
-
-
 
     // Swaps:
 
@@ -2285,9 +2324,9 @@ mod tests {
     fn test_swap_forward_correctness() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
-        let s = vec![  1,  2,  3,  7,  8,  9, 10, 11, 12, 13,  5,  6,  4, 14, 15];
+        let s = vec![1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 5, 6, 4, 14, 15];
 
-        unsafe{ swap_forward(x, y, 7) };
+        unsafe { swap_forward(x, y, 7) };
 
         assert_eq!(v, s);
     }
@@ -2296,17 +2335,17 @@ mod tests {
     fn test_swap_backward_correctness() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
-        let s = vec![  1,  2,  3, 13, 11, 12,  4,  5,  6,  7,  8,  9, 10, 14, 15];
+        let s = vec![1, 2, 3, 13, 11, 12, 4, 5, 6, 7, 8, 9, 10, 14, 15];
 
-        unsafe{ swap_backward(x, y, 7) };
+        unsafe { swap_backward(x, y, 7) };
 
         assert_eq!(v, s);
 
         let (v, (x, y)) = prepare_swap(15, 1, 7);
 
-        let s = vec![13, 14, 15, 10, 11, 12,  1,  2,  3,  4,  5,  6,  7,  8,  9];
+        let s = vec![13, 14, 15, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-        unsafe{ swap_backward(x, y, 9) };
+        unsafe { swap_backward(x, y, 9) };
 
         assert_eq!(v, s);
     }
