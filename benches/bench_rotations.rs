@@ -341,7 +341,8 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
 
 fn bench_bridge(c: &mut Criterion) {
     // case_bridge(c, 15,  &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-    case_bridge(c, 100, &[1, 20, 30, 40, 50, 60, 70, 80, 90, 99]);
+    case_bridge(c, 102, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 101]);
+    case_bridge(c, 1002, &[1, 200, 334, 400, 501, 501, 668, 800, 900, 1001]);
 }
 
 fn bench_all(c: &mut Criterion) {
