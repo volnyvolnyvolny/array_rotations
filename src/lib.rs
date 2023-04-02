@@ -555,7 +555,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
     if left > 0 && right > 0 {
         // left = 0, 1; right = 0, 1
-        ptr_algo1_rotate(left, mid, right);
+        ptr_direct_rotate(left, mid, right);
     }
 }
 
@@ -632,13 +632,9 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
         ptr::copy(mid, start, right);
         ptr::copy_nonoverlapping(buf, dim, left);
     } else if right < left {
-        reverse_slice(start, left + right);
-        ptr_aux_rotate(right, start.add(right), left, buffer);
-        reverse_slice(start, left + right);
-
-        // ptr::copy_nonoverlapping(mid, buf, right);
-        // ptr::copy(start, dim, left);
-        // ptr::copy_nonoverlapping(buf, start, right);
+        ptr::copy_nonoverlapping(mid, buf, right);
+        ptr::copy(start, dim, left);
+        ptr::copy_nonoverlapping(buf, start, right);
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
     }
@@ -1193,13 +1189,20 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize, buffe
 ///
 /// ## Algorithm
 ///
-/// "This is a relatively complex and inefficient way to rotate in-place,
-///  though it does so in the minimal number of moves.
+/// This algorithm is extracted from current rotation implementation in Rust.
 ///
-///  Its first known publication was in *1966*.
+/// "In Rust this algorithm is used for small values of `left + right` or for large `T`. The elements
+/// are moved into their final positions one at a time starting at `mid - left` and advancing by `right`
+/// steps modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
+/// `mid - left`. However, if `gcd(left + right, right)` is not 1, the above steps skipped over
+/// elements."
 ///
-/// It computes the greatest common divisor and uses a loop to create
-/// a chain of consecutive swaps." <<https://github.com/scandum/rotate>>
+/// "Fortunately, the number of skipped over elements between finalized elements is always equal, so
+/// we can just offset our starting position and do more rounds (the total number of rounds is the
+/// `gcd(left + right, right)` value). The end result is that all elements are finalized once and
+/// only once."
+///
+/// Its first known publication was in *1966*.
 ///
 /// ## Safety
 ///
@@ -1506,137 +1509,6 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buff
     }
 
     ptr_contrev_rotate(left, mid, right);
-}
-
-/// # Algo1 (juggler) rotation
-///
-/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-/// right.
-///
-/// ## Algorithm
-///
-/// This algorithm is extracted from current rotation implementation in Rust.
-///
-/// "In Rust *Algo1* is used for small values of `left + right` or for large `T`. The elements are moved
-/// into their final positions one at a time starting at `mid - left` and advancing by `right` steps
-/// modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
-/// `mid - left`. However, if `gcd(left + right, right)` is not 1, the above steps skipped over
-/// elements."
-///
-/// "Fortunately, the number of skipped over elements between finalized elements is always equal, so
-/// we can just offset our starting position and do more rounds (the total number of rounds is the
-/// `gcd(left + right, right)` value). The end result is that all elements are finalized once and
-/// only once."
-///
-/// ## Safety
-///
-/// The specified range must be valid for reading and writing.
-///
-/// ## Examples
-///
-/// ```text
-///                            mid
-///           left = 9         |    right = 6
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]                      // round
-///   └─────────────────┐
-/// [ ✘  2  .  .  .  6  1  8  .  .  .  .  .  . 15]   [ 7]
-///                                       ┌────────────┘
-///                     _                 ↓
-/// [ ✘  2  .  .  .  6  1  8  .  .  . 12  7 14 15]   [13]
-///            ┌───────────────────────────────────────┘
-///            ↓        _                 _
-/// [ ✘  2  3 13  5  6  1  8  .  .  . 12  7 14 15]   [ 4]
-///                              ┌─────────────────────┘
-///            _        _        ↓        _
-/// [ ✘  2  3 13  5  6  1  8  9  4 11 12  7 14 15]   [10]
-///   ┌────────────────────────────────────────────────┘
-///   ↓        _        _        _        _
-/// [10  2  3 13  5  6  1  8  9  4 11 12  7 14 15]                      // round
-///      |        |        |        |        └──────────────────╮
-///      |        |        |        └──────────────────╮        ┆
-///      |        |        └─────────────────┐         ┆        ┆
-///      |        └─────────────────┐        ┆         ┆        ┆
-///      └─────────────────┐        ┆        ┆         ┆        ┆
-/// ~─────────────╮        ┆        ┆        ┆         ┆        ┆
-/// ~────╮        ┆        ┆        ┆        ┆         ┆        ┆
-///   _  ↓     _  ↓     _  ↓     _  ↓     _  ↓      _  ↓     _  ↓
-/// [10 11  3 13 14  6  1  2  9  4  5 12  7  8 15][10 11  3 13 14...    // round
-///         |        |        |        |        └──────────────────╮
-///         |        |        |        └──────────────────╮        ┆
-///         |        |        └─────────────────┐         ┆        ┆
-///         |        └─────────────────┐        ┆         ┆        ┆
-///         └─────────────────┐        ┆        ┆         ┆        ┆
-/// ~────────────────╮        ┆        ┆        ┆         ┆        ┆
-/// ~───────╮        ┆        ┆        ┆        ┆         ┆        ┆
-///   _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓   _  _  ↓  _  _  ↓
-/// [10 11 12 13 14 15: 1  2  3* 4  5  6  7  8  9][10 11 12 13 14 15...
-/// ```
-pub unsafe fn ptr_algo1_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    loop {
-        // N.B. the below algorithms can fail if these cases are not checked
-        if (right == 0) || (left == 0) {
-            return;
-        }
-
-        let start = mid.sub(left);
-
-        // beginning of first round
-        let mut tmp: T = start.read();
-        let mut i = right;
-
-        // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
-        // but it is faster to do one loop which calculates the gcd as a side effect, then
-        // doing the rest of the chunk
-        let mut gcd = right;
-
-        // benchmarks reveal that it is faster to swap temporaries all the way through instead
-        // of reading one temporary once, copying backwards, and then writing that temporary at
-        // the very end. This is possibly due to the fact that swapping or replacing temporaries
-        // uses only one memory address in the loop instead of needing to manage two.
-        loop {
-            tmp = start.add(i).replace(tmp);
-
-            // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the next increment. This prevents
-            // any wrapping of pointers or `usize`.
-            if i >= left {
-                i -= left;
-                if i == 0 {
-                    // end of first round
-                    start.write(tmp);
-                    break;
-                }
-                // this conditional must be here if `left + right >= 15`
-                if i < gcd {
-                    gcd = i;
-                }
-            } else {
-                i += right;
-            }
-        }
-
-        // finish the chunk with more rounds
-        for s in 1..gcd {
-            tmp = start.add(s).read();
-            i = s + right;
-
-            loop {
-                tmp = start.add(i).replace(tmp);
-                if i >= left {
-                    i -= left;
-                    if i == s {
-                        start.add(s).write(tmp);
-                        break;
-                    }
-                } else {
-                    i += right;
-                }
-            }
-        }
-
-        return;
-    }
 }
 
 /// # Default (Stable) rotation
@@ -2123,10 +1995,5 @@ mod tests {
     #[test]
     fn ptr_drill_rotate_correctness() {
         test_correctness(ptr_drill_rotate::<usize>);
-    }
-
-    #[test]
-    fn ptr_algo1_rotate_correctness() {
-        test_correctness(ptr_algo1_rotate::<usize>);
     }
 }
