@@ -1,6 +1,51 @@
 use std::mem::MaybeUninit;
 use std::ptr;
 
+/// # Copy backward
+///
+/// Copy region `[x, x+count)` to `[y, y+count)` moving left,
+/// element by element.
+///
+/// Regions could overlap.
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///            src      dst    count = 7
+/// [ 1  2  3 *4  5  6 :7  8  9 10 11 12 13 14 15]  // copy backward
+///            └─────── |────────┘        |
+///                     └─────────────────┘
+/// [ 1  .  3 *4  .  6 :4 ~~~~~~~~~~~~~~ 10 14 15]
+/// ```
+///
+/// ```text
+///            dst      src   count = 7
+/// [ 1  2  3: 4  5  6* 7  8  9 10 11 12 13 14 15]  // copy backward
+///            └─────── |────────┘        |
+///                     └─────────────────┘
+/// [ 1  .  3  4  .  6  7 11 ~~ 13 11  . 13 14 15]  // after 3 iterations
+///
+/// [ 1  .  3:13 11 ~~*13 11  . 13 11  .  .  . 15]  // 4 more iterations.
+/// ```
+pub unsafe fn copy_backward<T>(src: *const T, dst: *mut T, count: usize) {
+    let src = src.cast::<MaybeUninit<T>>();
+    let dst = dst.cast::<MaybeUninit<T>>();
+
+    for i in (0..count).rev() {
+        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+        let src = unsafe { src.add(i) };
+
+        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+        let dst = unsafe { &mut *dst.add(i) };
+
+        ptr::write(dst, ptr::read(src));
+    }
+}
+
 /// # Swap forward
 ///
 /// Swaps regions `[x, x+count)` and `[y, y+count)` moving right,
@@ -141,10 +186,44 @@ mod tests {
         }
     }
 
+    fn prepare_copy(
+        len: usize,
+        src: usize,
+        dst: usize,
+    ) -> (Vec<usize>, (*const usize, *mut usize)) {
+        let mut v = seq(len);
+
+        unsafe {
+            let src = &v[..].as_ptr().add(src - 1);
+            let dst = &v[..].as_mut_ptr().add(dst - 1);
+
+            (v, (src.clone(), dst.clone()))
+        }
+    }
+
+    #[test]
+    fn copy_forward_correctness() {
+        let (v, (src, dst)) = prepare_copy(15, 4, 7);
+
+        let s = vec![1, 2, 3, 4, 5, 6, 4, 5, 6, 7, 8, 9, 10, 14, 15];
+
+        unsafe { copy_backward(src, dst, 7) };
+
+        assert_eq!(v, s);
+
+        let (v, (src, dst)) = prepare_copy(15, 7, 4);
+
+        let s = vec![1, 2, 3, 13, 11, 12, 13, 11, 12, 13, 11, 12, 13, 14, 15];
+
+        unsafe { copy_backward(src, dst, 7) };
+
+        assert_eq!(v, s);
+    }
+
     // Swaps:
 
     #[test]
-    fn test_swap_forward_correctness() {
+    fn swap_forward_correctness() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
         let s = vec![1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 5, 6, 4, 14, 15];
@@ -155,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_swap_backward_correctness() {
+    fn swap_backward_correctness() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
         let s = vec![1, 2, 3, 13, 11, 12, 4, 5, 6, 7, 8, 9, 10, 14, 15];

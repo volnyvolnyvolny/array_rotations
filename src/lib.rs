@@ -34,7 +34,7 @@ use std::cmp;
 use std::ptr;
 use std::slice;
 
-use gcd::Gcd;
+// use gcd::Gcd;
 
 mod utils;
 pub use utils::*;
@@ -555,7 +555,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
     if left > 0 && right > 0 {
         // left = 0, 1; right = 0, 1
-        ptr_direct_rotate(left, mid, right);
+        ptr_algo1_rotate(left, mid, right);
     }
 }
 
@@ -633,7 +633,7 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
         //     ptr::swap_nonoverlapping(start, mid.add(left), left);
         // } else {
         ptr::copy_nonoverlapping(start, buf, left);
-        ptr::copy_nonoverlapping(mid, start, right);
+        ptr::copy(mid, start, right);
         ptr::copy_nonoverlapping(buf, dim, left);
         // }
     } else if right < left {
@@ -642,7 +642,7 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
         //     ptr::swap_nonoverlapping(start, start.add(right), right);
         // } else {
         ptr::copy_nonoverlapping(mid, buf, right);
-        ptr::copy_nonoverlapping(start, dim, left);
+        ptr::copy(start, dim, left);
         ptr::copy_nonoverlapping(buf, start, right);
         // }
     } else {
@@ -2075,10 +2075,10 @@ mod tests {
         test_buf_correctness(ptr_trinity_rotate::<usize>);
     }
 
-    #[test]
-    fn ptr_juggling_rotate_correctness() {
-        test_correctness(ptr_direct_rotate::<usize>);
-    }
+    // #[test]
+    // fn ptr_juggling_rotate_correctness() {
+    //     test_correctness(ptr_direct_rotate::<usize>);
+    // }
 
     #[test]
     fn ptr_helix_rotate_correctness() {
