@@ -1,5 +1,27 @@
 use std::mem::MaybeUninit;
 use std::ptr;
+use std::slice;
+
+/// # Reverse slice
+///
+/// Reverse slice `[p, p+count)`.
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///                 count = 7
+/// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]  // reverse slice
+///            └─────────────────┘
+/// [ 1  .  3 10  9  8  7  6  5  4 11  .  .  . 15]
+/// ```
+pub unsafe fn reverse_slice<T>(p: *mut T, count: usize) {
+    let slice = slice::from_raw_parts_mut(p, count);
+    slice.reverse();
+}
 
 /// # Copy backward
 ///

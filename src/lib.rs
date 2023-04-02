@@ -628,23 +628,17 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
     let dim = start.add(right);
 
     if left < right {
-        // if right == left * 2 {
-        //     ptr::swap_nonoverlapping(start, mid, left);
-        //     ptr::swap_nonoverlapping(start, mid.add(left), left);
-        // } else {
         ptr::copy_nonoverlapping(start, buf, left);
         ptr::copy(mid, start, right);
         ptr::copy_nonoverlapping(buf, dim, left);
-        // }
     } else if right < left {
-        // if left == right * 2 {
-        //     ptr::swap_nonoverlapping(start.add(right), mid, right);
-        //     ptr::swap_nonoverlapping(start, start.add(right), right);
-        // } else {
-        ptr::copy_nonoverlapping(mid, buf, right);
-        ptr::copy(start, dim, left);
-        ptr::copy_nonoverlapping(buf, start, right);
-        // }
+        reverse_slice(start, left + right);
+        ptr_aux_rotate(right, start.add(right), left, buffer);
+        reverse_slice(start, left + right);
+
+        // ptr::copy_nonoverlapping(mid, buf, right);
+        // ptr::copy(start, dim, left);
+        // ptr::copy_nonoverlapping(buf, start, right);
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
     }
@@ -799,107 +793,78 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 ///   _  _  _  _  _  _  _  _  _  _  _  _  _  _  ┌───────┘
 /// [11  .  .  . 15  1  .  .  .  .  .  .  .  9 10]
 /// ```
-///
-/// Same situation, buffer size = 2 (bridge = 9):
-///
-/// ```text
-///          dim                        mid
-/// left = 12|           bridge         |right = 3
-/// [ 1  2  3: 4  5  6  7  8  9 10 11 12*13 14 15]
-///            └──┴────────────────────────────────────┬──┐
-///   a-->     b-->                       c-->         |  |
-/// [ 1  .  3: ✘  ✘  6  .  .  .  .  . 12*13  . 15]    [4  5]
-///   └────────┐                          |
-///   ╭─────── ┆──────────────────────────╯
-///   ↓  a     ↓  b                          c
-/// [13  2  3  1  ✘  6  .  .  .  .  . 12  ✘ 14 15]    [4  5]
-///      └────────┐                          |
-///      ╭─────── ┆──────────────────────────╯
-///   _  ↓     _  ↓
-/// [13 14  3  1  2  6  .  .  .  .  . 12  ✘  ✘ 15]    [4  5]
+unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer: Vec<T>) {
+    // if T::IS_ZST {
+    // return;
+    // }
 
-///   _  _     _  _                       ┌──┬─────────┴──┘
-/// [13 14  3  1  2  6  7  .  .  .  . 12  4  5 15]    [✘  ✘]
-///                  └──┴──────────────────────────────┬──┐
-///   _  _  a-->     b-->                       c-->   |  |
-/// [13 14  3  1  2  ✘  ✘  8  .  .  . 12  4  5 15]    [6  7]
-///         └────────┐                          |
-///         ╭─────── ┆──────────────────────────╯
-///   _  _  ↓  _  _  ↓
-/// [13 14 15  1  2  3  ✘  8  .  .  . 12  4  5  ✘]    [6  7]
+    // N.B. the below algorithms can fail if these cases are not checked
+    if (right == 0) || (left == 0) {
+        return;
+    }
 
-///                     └──┴─────────────/\────────────┴──┘
-///                     ┌──┬─────────────~~────────────┬──┐
-///   _  _  a-->  _  b-->  |                    c-->   |  |
-/// [13 14  3  1  2  6  4  5  .  .  . 12  ✘  ✘ 15]    [7  8]
+    let _buf = buffer.as_mut_ptr();
 
-///   _  _           _  _           ┌──┬───────────────┴──┘
+    loop {
+        let start = mid.sub(left);
 
-/// [13 14  3  .  5  1  2  8  9 10  6  7 13  . 15]    [✘  ✘]
-///                        └──┴────────────────────────┬──┐
-///   _  _  a-->     _  _  b-->     _  _  c-->         |  |
-/// [13 14  3  .  5  1  2  ✘  ✘ 10  6  7 13  . 15]    [8  9]
-///         └──────────────┐              |
-///         ╭───────────── ┆──────────────╯
-///   _  _  ↓  a     _  _  ↓  b     _  _     c
-/// [13  . 13  4  5  1  .  3  ✘ 10  6  7  ✘ 14 15]    [8  9]
-///            └──────────────┐              |
-///            ╭───────────── ┆──────────────╯
-///   _  _  _  ↓     _  _  _  ↓     _  _
-/// [13  .  . 14  5  1  .  .  4 10  6  7  ✘  ✘ 15]    [8  9]
-///   _  _  _  _     _  _  _  _     _     ┌──┬─────────┴──┘
-/// [13  .  . 14  5  1  .  .  4 10  6  7  8  9 15]    [✘  ✘]
-///                              └──────────────────────┐
-///   _  _  _  _ a-->_  _  _  _ b-->_  _  _  _  c-->    |
-/// [13  .  . 14  5  1  .  .  4  ✘  6  .  .  9 15]    [10]
-///               └──────────────┐              |
-///               ╭───────────── ┆──────────────╯
-///   _  _  _  _  ↓  _  _  _  _  ↓  _  _  _  _
-/// [13  .  .  . 15  1  .  .  .  5  .  .  .  9  ✘]    [10]
-///   _  _  _  _  _  _  _  _  _  _  _  _  _  _  ┌───────┘
-/// [13  .  .  . 15  1  .  .  .  .  .  .  .  9 10]
-/// ```
-// unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer: Vec<T>) {
-//     // // if T::IS_ZST {
-//     //     // return;
-//     // // }
+        // beginning of first round
+        let mut tmp: T = start.read();
+        let mut i = right;
 
-//     // if (right == 0) || (left == 0) {
-//     //     return;
-//     // }
+        // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
+        // but it is faster to do one loop which calculates the gcd as a side effect, then
+        // doing the rest of the chunk
+        let mut gcd = right;
 
-//     // let buffer = buffer.as_mut_ptr();
-//     // let bridge = left.abs_diff(right);
+        // benchmarks reveal that it is faster to swap temporaries all the way through instead
+        // of reading one temporary once, copying backwards, and then writing that temporary at
+        // the very end. This is possibly due to the fact that swapping or replacing temporaries
+        // uses only one memory address in the loop instead of needing to manage two.
+        loop {
+            tmp = start.add(i).replace(tmp);
 
-//     // if bridge == 0 {
-//     //     ptr::swap_nonoverlapping(mid.sub(left), mid, right);
-//     // }
+            // instead of incrementing `i` and then checking if it is outside the bounds, we
+            // check if `i` will go outside the bounds on the next increment. This prevents
+            // any wrapping of pointers or `usize`.
+            if i >= left {
+                i -= left;
+                if i == 0 {
+                    // end of first round
+                    start.write(tmp);
+                    break;
+                }
+                // this conditional must be here if `left + right >= 15`
+                if i < gcd {
+                    gcd = i;
+                }
+            } else {
+                i += right;
+            }
+        }
 
-//     // let s = cmp::min(bridge, buffer.capacity());
+        // finish the chunk with more rounds
+        for s in 1..gcd {
+            tmp = start.add(s).read();
+            i = s + right;
 
-//     // // if cmp::min(left, right) <= bridge {
-//     //     // ptr_aux_rotate(left, mid, right);
-//     //     // return;
-//     // // }
+            loop {
+                tmp = start.add(i).replace(tmp);
+                if i >= left {
+                    i -= left;
+                    if i == s {
+                        start.add(s).write(tmp);
+                        break;
+                    }
+                } else {
+                    i += right;
+                }
+            }
+        }
 
-//     // let mut a = mid.sub(left);
-//     // let mut b = mid.sub(bridge);
-//     // let mut c = mid;
-
-//     // for _ in 0..xzcd {
-//     //     ptr::copy_nonoverlapping(c, buffer, bridge);
-
-//     //     for _ in 0..right {
-//     //         c.write(a.read());
-//     //         a.write(b.read());
-//     //         a = a.add(1);
-//     //         b = b.add(1);
-//     //         c = c.add(1);
-//     //     }
-
-//     //     ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
-//     // }
-// }
+        return;
+    }
+}
 
 /// # Bridge rotation (without Auxilary)
 ///
@@ -994,6 +959,62 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize, bu
     // if T::IS_ZST {
     // return;
     // }
+
+    if (right == 0) || (left == 0) {
+        return;
+    }
+
+    // type BufType = [usize; 32];
+    // let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
+    // let buf = rawarray.as_mut_ptr() as *mut T;
+
+    let buf = buffer.as_mut_ptr();
+    let bridge = left.abs_diff(right);
+
+    // if cmp::min(left, right) <= bridge {
+    // ptr_aux_rotate(left, mid, right);
+    // return;
+    // }
+
+    let a = mid.sub(left);
+    let b = mid;
+    let c = mid.sub(left).add(right);
+    let d = mid.add(right);
+
+    if left > right {
+        ptr::copy_nonoverlapping(c, buf, bridge);
+
+        for i in 0..right {
+            c.add(i).write(a.add(i).read());
+            a.add(i).write(b.add(i).read());
+        }
+
+        ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
+    } else if left < right {
+        ptr::copy_nonoverlapping(b, buf, bridge);
+
+        for i in 1..=left {
+            c.sub(i).write(d.sub(i).read());
+            d.sub(i).write(b.sub(i).read());
+        }
+
+        ptr::copy_nonoverlapping(buf, a, bridge);
+    } else {
+        ptr::swap_nonoverlapping(mid.sub(left), mid, right);
+    }
+}
+
+unsafe fn ptr_bridge_rotate_block<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
+    // if T::IS_ZST {
+    // return;
+    // }
+
+    let bridge = left.abs_diff(right);
+
+    if cmp::min(left, right) <= bridge {
+        ptr_aux_rotate(left, mid, right, buffer);
+        return;
+    }
 
     if (right == 0) || (left == 0) {
         return;
@@ -1223,32 +1244,41 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    loop {
-        // N.B. the below algorithms can fail if these cases are not checked
-        if (right == 0) || (left == 0) {
-            return;
-        }
+    // N.B. the below algorithms can fail if these cases are not checked
+    if (right == 0) || (left == 0) {
+        return;
+    }
 
+    loop {
         let start = mid.sub(left);
+
+        // beginning of first round
+        let mut tmp: T = start.read();
+        let mut i = right;
 
         // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
         // but it is faster to do one loop which calculates the gcd as a side effect, then
         // doing the rest of the chunk
         let mut gcd = right;
 
-        // beginning of first round
-        let mut tmp: T = start.read();
-        let mut i = 0;
-        let mut next = i + right;
-
+        // benchmarks reveal that it is faster to swap temporaries all the way through instead
+        // of reading one temporary once, copying backwards, and then writing that temporary at
+        // the very end. This is possibly due to the fact that swapping or replacing temporaries
+        // uses only one memory address in the loop instead of needing to manage two.
         loop {
-            if next == left + right {
-                // end of first round
-                start.write(tmp);
-                break;
-            } else if i > left {
-                i -= left;
+            tmp = start.add(i).replace(tmp);
 
+            // instead of incrementing `i` and then checking if it is outside the bounds, we
+            // check if `i` will go outside the bounds on the next increment. This prevents
+            // any wrapping of pointers or `usize`.
+            if i >= left {
+                i -= left;
+                if i == 0 {
+                    // end of first round
+                    start.write(tmp);
+                    break;
+                }
+                // this conditional must be here if `left + right >= 15`
                 if i < gcd {
                     gcd = i;
                 }
@@ -2075,10 +2105,10 @@ mod tests {
         test_buf_correctness(ptr_trinity_rotate::<usize>);
     }
 
-    // #[test]
-    // fn ptr_juggling_rotate_correctness() {
-    //     test_correctness(ptr_direct_rotate::<usize>);
-    // }
+    #[test]
+    fn ptr_direct_rotate_correctness() {
+        test_correctness(ptr_direct_rotate::<usize>);
+    }
 
     #[test]
     fn ptr_helix_rotate_correctness() {
