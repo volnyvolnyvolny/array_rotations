@@ -307,16 +307,24 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
         group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| {
             b.iter(|| black_box(test(ptr_contrev_rotate::<usize>, l.clone(), p, r)))
         });
-        group.bench_with_input(BenchmarkId::new("Algo1", l), l, |b, l| {
-            b.iter(|| black_box(test(ptr_algo1_rotate::<usize>, l.clone(), p, r)))
+        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, l| {
+            b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), p, r))
         });
-        // group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, l| {
-        //     b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), p, r))
-        // });
         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, l| {
             b.iter(|| {
                 black_box(buf_test(
                     ptr_bridge_rotate::<usize>,
+                    l.clone(),
+                    p,
+                    r,
+                    buffer.as_mut_slice(),
+                ))
+            })
+        });
+        group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, l| {
+            b.iter(|| {
+                black_box(buf_test(
+                    ptr_raft_rotate::<usize>,
                     l.clone(),
                     p,
                     r,

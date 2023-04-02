@@ -673,123 +673,22 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 ///
 /// ```text
 ///                dim            mid
-///     left = 10  |    bridge    |   right = 5
-/// [ 1  2  3  4  5: 6-8      9 10*11 12 13 14 15]                // 1 round
-///                  └─┴───────────────────────────────┬─────┐
-///   a-->           b-->           c-->               |     |
-/// [ 1  .  .  .  5: ✘  ✘  ✘  9 10*11  .  .  . 15]    [6  7  8]
-///   └──────────────┐              |
-///   ╭───────────── ┆──────────────╯
-///   ↓  a           ↓  b              c
-/// [11  2  .  .  5  1  ✘  ✘  9 10  ✘ 12  .  . 15]    [6  .  8]
-///      └──────────────┐              |
-///      ╭───────────── ┆──────────────╯
-///   _  ↓  a        _  ↓  b              c
-/// [11 12  3  .  5  1  2  ✘  9 10  ✘  ✘ 13  . 15]    [6  .  8]
-///         └──────────────┐              |
-///         ╭───────────── ┆──────────────╯
-///   _  _  ↓        _  _  ↓
-/// [11  . 13  4  5  1  .  3  9 10  ✘  ✘  ✘ 14 15]    [6-8    ]
-///   _  _  _        _  _  _        ┌─────┬────────────┴─┘
-/// [11  . 13  4  5  1  .  3  9 10  6  7  8 14 15]    [✘  ✘  ✘]   // 2 round
-///                           " new bridge"
-///                           └──┴─────────────────────┬──┐
-///   _  _  _  a-->  _  _  _  b-->  _  _  _  c-->      |  |
-/// [11  . 13  4  5  1  .  3  ✘  ✘  6  .  8 14 15]    [9 10]
-///            └──────────────┐              |
-///            ╭───────────── ┆──────────────╯
-///   _  _  _  ↓  a  _  _  _  ↓  b  _  _  _     c
-/// [11  .  . 14  5  1  .  .  4  ✘  6  .  8  ✘ 15]    [9 10]
-///               └──────────────┐              |
-///               ╭───────────── ┆──────────────╯
-///   _  _  _  _  ↓  _  _  _  _  ↓  _  _  _
-/// [11  .  .  . 15  1  .  .  .  5  .  .  8  ✘  ✘]    [9 10]
-///   _  _  _  _  _  _  _  _  _  _  _  _  _  ┌──┬──────┴──┘
-/// [11  .  .  . 15: 1  .  .  .  .  .  .  8  9 10]
+///     left = 10  |              |   right = 5
+/// [ 1-3      4  5: 6  7  8  9 10*11 12 13 14 15]
+///   └─┴───────────────────────────────────────────────┬─────┐
+/// [ ✘  ✘  ✘  4-6      7  .  .  .  .  .  .  . 15]    [ 1  2  3]
+///            ┌─────┬──────────────────────────────────┴─────┘
+/// [ ✘  ✘  ✘  1 ~~~ 3  7-9      .  .  .  .  . 15]    [ 4  5  6]
+///                     └─┴─────────────────────────────┬─────┐
+/// [ ✘  ✘  ✘  1  .  3  4 ~~~ 6 10  .  .  .  . 15]    [ 7  8  9]
+///                              ┌─────┬────────────────┴─────┘
+/// [ ✘  ✘  ✘  1  .  .  .  .  .  7  .  9  .  . 15]    [10 11 12]
+///                                       ┌─────┬───────┴─────┘
+/// [ ✘  ✘  ✘  1  .  .  .  .  .  .  .  9 10  . 12]    [13 14 15]
+///   ┌─────┬───────────────────────────────────────────┴─────┘
+/// [13  . 15  1  .  .  .  .  .  .  .  .  .  . 12]
 /// ```
-///
-/// and backward:
-///
-/// ```text
-///                mid            dim
-///     left = 5   |    bridge    |   right = 10
-/// [11 12 13 14 15* 1  2      3-5: 6  7  8  9 10]                // 1 round
-///                            └─┴─────────────────────┬─────┐
-///   a-->           b-->           c-->               |     |
-/// [11  .  .  . 15* 1  2  ✘  ✘  ✘: 6  .  .  . 10]    [3  4  5]
-///               |              ┌──────────────┘
-///               ╰──────────────┆ ─────────────╮
-///                              ↓              ↓
-/// [11  .  . 14  ✘  1  2  ✘  ✘ 10  6  .  .  9 15]    [3  4  5]
-///            |              ┌──────────────┘
-///            ╰──────────────┆ ─────────────╮
-///                           ↓  _           ↓  _
-/// [11  . 13  ✘  ✘  1  2  ✘  9 10  6  .  8 14 15]    [3  4  5]
-///         |              ┌──────────────┘
-///         ╰──────────────┆ ─────────────╮
-///                        ↓  _  _        ↓  _  _
-/// [11 12  ✘  ✘  ✘  1  2  8  9 10  6  7 13 14 15]    [3-5    ]
-///         ┌─────┬────────────────────────────────────┴─┘
-/// [11 12  3  4  5  1  2  8  9 10  6  7 13 14 15]    [✘  ✘  ✘]   // 2 round
-///        "  new bridge "
-///                  └──┴──────────────────────────────┬──┐
-///         _  a-->        _  b-->        _  c-->      |  |
-/// [11 12  3  4  5  ✘  ✘  8  9 10  6  7 13 14 15]    [1  2]
-///      |              ┌──────────────┘
-///      ╰──────────────┆ ─────────────╮
-///         _  _  _     ↓  _  _  _     ↓  _  _  _
-/// [11  ✘  3  4  5  ✘  7  8  9 10  6 12 13 14 15]    [1  2]
-///   |              ┌──────────────┘
-///   ╰──────────────┆ ─────────────╮
-///         _  _  _  ↓  _  _  _  _  ↓  _  _  _  _
-/// [ ✘  ✘  3  4  5  6  7  8  9 10 11 12 13 14 15]    [1  2]
-///   ┌──┬─────────────────────────────────────────────┴──┘
-/// [ 1  2  .  .  5* .  .  .  . 10:11  .  .  . 15]
-/// ```
-///
-/// Same situation, buffer size = 2 (bridge = 5):
-///
-/// ```text
-///                dim            mid
-///     left = 10  |    bridge    |   right = 5
-/// [ 1  2  3  4  5: 6  7  8  9 10*11 12 13 14 15]                // 1 round
-///                  └──┴──────────────────────────────┬──┐
-///   a-->           b-->           c-->               |  |
-/// [ 1  .  .  .  5: ✘  ✘  8  .  .*11  .  .  . 15]    [6  7]
-///   └──────────────┐              |
-///   ╭───────────── ┆──────────────╯
-///   ↓  a           ↓  b              c
-/// [11  2  .  .  5  1  ✘  8  . 10  ✘ 12  .  . 15]    [6  7]
-///      └──────────────┐              |
-///      ╭───────────── ┆──────────────╯
-///   _  ↓           _  ↓
-/// [11 12  3  .  5  1  2  8  . 10  ✘  ✘ 13  . 15]    [6  7]
-///   _  _           _  _           ┌──┬───────────────┴──┘
-/// [11 12  3  .  5  1  2  8  9 10  6  7 13  . 15]    [✘  ✘]      // 2 round
-///                        └──┴────────────────────────┬──┐
-///   _  _  a-->     _  _  b-->     _  _  c-->         |  |
-/// [11 12  3  .  5  1  2  ✘  ✘ 10  6  7 13  . 15]    [8  9]
-///         └──────────────┐              |
-///         ╭───────────── ┆──────────────╯
-///   _  _  ↓  a     _  _  ↓  b     _  _     c
-/// [11  . 13  4  5  1  .  3  ✘ 10  6  7  ✘ 14 15]    [8  9]
-///            └──────────────┐              |
-///            ╭───────────── ┆──────────────╯
-///   _  _  _  ↓     _  _  _  ↓     _  _
-/// [11  .  . 14  5  1  .  .  4 10  6  7  ✘  ✘ 15]    [8  9]
-///   _  _  _  _     _  _  _  _     _     ┌──┬─────────┴──┘
-/// [11  .  . 14  5  1  .  .  4 10  6  7  8  9 15]    [✘  ✘]      // 3 round
-///                              └──────────────────────┐
-///   _  _  _  _ a-->_  _  _  _ b-->_  _  _  _  c-->    |
-/// [11  .  . 14  5  1  .  .  4  ✘  6  .  .  9 15]    [10]
-///               └──────────────┐              |
-///               ╭───────────── ┆──────────────╯
-///   _  _  _  _  ↓  _  _  _  _  ↓  _  _  _  _
-/// [11  .  .  . 15  1  .  .  .  5  .  .  .  9  ✘]    [10]
-///   _  _  _  _  _  _  _  _  _  _  _  _  _  _  ┌───────┘
-/// [11  .  .  . 15  1  .  .  .  .  .  .  .  9 10]
-/// ```
-unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer: Vec<T>) {
+pub unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
     // return;
     // }
@@ -799,7 +698,7 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
         return;
     }
 
-    let _buf = buffer.as_mut_ptr();
+    let buf = buffer.as_mut_ptr();
 
     loop {
         let start = mid.sub(left);
@@ -840,16 +739,18 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
         }
 
         // finish the chunk with more rounds
-        for s in 1..gcd {
-            tmp = start.add(s).read();
-            i = s + right;
+
+        if gcd > 1 {
+            ptr::copy_nonoverlapping(start.add(1), buf, gcd - 1);
+            i = 1 + right;
 
             loop {
-                tmp = start.add(i).replace(tmp);
+                ptr::swap_nonoverlapping(start.add(i), buf, gcd - 1);
+
                 if i >= left {
                     i -= left;
-                    if i == s {
-                        start.add(s).write(tmp);
+                    if i == 1 {
+                        ptr::copy_nonoverlapping(buf, start.add(1), gcd - 1);
                         break;
                     }
                 } else {
@@ -857,7 +758,6 @@ unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, mut buffer:
                 }
             }
         }
-
         return;
     }
 }
@@ -955,62 +855,6 @@ unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize, bu
     // if T::IS_ZST {
     // return;
     // }
-
-    if (right == 0) || (left == 0) {
-        return;
-    }
-
-    // type BufType = [usize; 32];
-    // let mut rawarray = MaybeUninit::<(BufType, [T; 0])>::uninit();
-    // let buf = rawarray.as_mut_ptr() as *mut T;
-
-    let buf = buffer.as_mut_ptr();
-    let bridge = left.abs_diff(right);
-
-    // if cmp::min(left, right) <= bridge {
-    // ptr_aux_rotate(left, mid, right);
-    // return;
-    // }
-
-    let a = mid.sub(left);
-    let b = mid;
-    let c = mid.sub(left).add(right);
-    let d = mid.add(right);
-
-    if left > right {
-        ptr::copy_nonoverlapping(c, buf, bridge);
-
-        for i in 0..right {
-            c.add(i).write(a.add(i).read());
-            a.add(i).write(b.add(i).read());
-        }
-
-        ptr::copy_nonoverlapping(buf, d.sub(bridge), bridge);
-    } else if left < right {
-        ptr::copy_nonoverlapping(b, buf, bridge);
-
-        for i in 1..=left {
-            c.sub(i).write(d.sub(i).read());
-            d.sub(i).write(b.sub(i).read());
-        }
-
-        ptr::copy_nonoverlapping(buf, a, bridge);
-    } else {
-        ptr::swap_nonoverlapping(mid.sub(left), mid, right);
-    }
-}
-
-unsafe fn ptr_bridge_rotate_block<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    let bridge = left.abs_diff(right);
-
-    if cmp::min(left, right) <= bridge {
-        ptr_aux_rotate(left, mid, right, buffer);
-        return;
-    }
 
     if (right == 0) || (left == 0) {
         return;
@@ -1942,10 +1786,15 @@ mod tests {
     // test_correctness(ptr_bridge_rotate_simple::<usize>);
     // }
 
-    // #[test]
-    // fn ptr_bridge_rotate_correctness() {
-    //     test_buf_correctness(ptr_bridge_rotate::<usize>);
-    // }
+    #[test]
+    fn ptr_bridge_rotate_correctness() {
+        test_buf_correctness(ptr_bridge_rotate::<usize>);
+    }
+
+    #[test]
+    fn ptr_raft_rotate_correctness() {
+        test_buf_correctness(ptr_raft_rotate::<usize>);
+    }
 
     #[test]
     fn ptr_reversal_rotate_correctness() {
