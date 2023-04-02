@@ -632,18 +632,18 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
         //     ptr::swap_nonoverlapping(start, mid, left);
         //     ptr::swap_nonoverlapping(start, mid.add(left), left);
         // } else {
-        ptr::copy_nonoverlapping(start, buf, left);
-        ptr::copy(mid, start, right);
-        ptr::copy_nonoverlapping(buf, dim, left);
+        ptr::copy_nonoverlapping(mid, buf, right);
+        ptr::copy(start, dim, left);
+        ptr::copy_nonoverlapping(buf, start, right);
         // }
     } else if right < left {
         // if left == right * 2 {
         //     ptr::swap_nonoverlapping(start.add(right), mid, right);
         //     ptr::swap_nonoverlapping(start, start.add(right), right);
         // } else {
-        ptr::copy_nonoverlapping(mid, buf, right);
-        ptr::copy(start, dim, left);
-        ptr::copy_nonoverlapping(buf, start, right);
+        ptr::copy_nonoverlapping(start, buf, left);
+        ptr::copy(mid, start, right);
+        ptr::copy_nonoverlapping(buf, dim, left);
         // }
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
@@ -1231,34 +1231,30 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
         let start = mid.sub(left);
 
-        // beginning of first round
-        let mut tmp: T = start.read();
-        let mut i = right;
-
         // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
         // but it is faster to do one loop which calculates the gcd as a side effect, then
         // doing the rest of the chunk
         let mut gcd = right;
+
+        // beginning of first round
+        let mut tmp: T = start.read();
+        let mut i = 0;
 
         // benchmarks reveal that it is faster to swap temporaries all the way through instead
         // of reading one temporary once, copying backwards, and then writing that temporary at
         // the very end. This is possibly due to the fact that swapping or replacing temporaries
         // uses only one memory address in the loop instead of needing to manage two.
         loop {
-            tmp = start.add(i).replace(tmp);
-
             // instead of incrementing `i` and then checking if it is outside the bounds, we
             // check if `i` will go outside the bounds on the next increment. This prevents
             // any wrapping of pointers or `usize`.
-            if i >= left {
+            if i == left {
+                // end of first round
+                start.write(tmp);
+                break;
+            } else if i > left {
                 i -= left;
-                if i == 0 {
-                    // end of first round
-                    start.write(tmp);
-                    break;
-                }
 
-                // this conditional must be here if `left + right >= 15`
                 if i < gcd {
                     gcd = i;
                 }
