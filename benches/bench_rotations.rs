@@ -291,6 +291,7 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     //    group.throughput(Throughput::Elements(length as u64));
 
     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
+    let mut buffer = Vec::<usize>::with_capacity(length);
     let mut v = seq(length);
 
     for l in ls {
@@ -298,8 +299,6 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
             let p = &v[..].as_mut_ptr().add(l.clone());
             p.clone()
         };
-
-        let mut buffer = Vec::<usize>::with_capacity(length);
 
         let r = length - l;
 

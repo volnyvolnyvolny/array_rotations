@@ -35,8 +35,8 @@ use std::ptr;
 use std::slice;
 
 use gcd::Gcd;
-mod utils;
 
+mod utils;
 pub use utils::*;
 
 /// # Triple reversal rotation
@@ -1223,39 +1223,70 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    if left == 0 || right == 0 {
-        return;
-    }
-
-    let len = left + right;
-    let start = mid.sub(left);
-    let end = mid.add(right);
-
-    let mut a;
-    let mut b;
-
-    let mut tmp;
-
-    for x in 0..left.gcd(len) {
-        tmp = start.add(x).read();
-        a = start.add(x);
-
-        loop {
-            b = a.add(left);
-
-            if b >= end {
-                b = b.sub(len);
-
-                if b == start.add(x) {
-                    break;
-                }
-            }
-
-            a.write(b.read());
-            a = b;
+    loop {
+        // N.B. the below algorithms can fail if these cases are not checked
+        if (right == 0) || (left == 0) {
+            return;
         }
 
-        a.write(tmp);
+        let start = mid.sub(left);
+
+        // beginning of first round
+        let mut tmp: T = start.read();
+        let mut i = right;
+
+        // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
+        // but it is faster to do one loop which calculates the gcd as a side effect, then
+        // doing the rest of the chunk
+        let mut gcd = right;
+
+        // benchmarks reveal that it is faster to swap temporaries all the way through instead
+        // of reading one temporary once, copying backwards, and then writing that temporary at
+        // the very end. This is possibly due to the fact that swapping or replacing temporaries
+        // uses only one memory address in the loop instead of needing to manage two.
+        loop {
+            tmp = start.add(i).replace(tmp);
+
+            // instead of incrementing `i` and then checking if it is outside the bounds, we
+            // check if `i` will go outside the bounds on the next increment. This prevents
+            // any wrapping of pointers or `usize`.
+            if i >= left {
+                i -= left;
+                if i == 0 {
+                    // end of first round
+                    start.write(tmp);
+                    break;
+                }
+
+                // this conditional must be here if `left + right >= 15`
+                if i < gcd {
+                    gcd = i;
+                }
+            } else {
+                i += right;
+            }
+        }
+
+        // finish the chunk with more rounds
+        for s in 1..gcd {
+            tmp = start.add(s).read();
+            i = s + right;
+
+            loop {
+                tmp = start.add(i).replace(tmp);
+                if i >= left {
+                    i -= left;
+                    if i == s {
+                        start.add(s).write(tmp);
+                        break;
+                    }
+                } else {
+                    i += right;
+                }
+            }
+        }
+
+        return;
     }
 }
 
@@ -1437,92 +1468,6 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// `32 * size_of(usize)`, it skips the trinity rotation and performs an auxiliary
 /// or bridge rotation on stack memory. Its first known publication was in 2021 by Igor van den Hoven."
 /// <<https://github.com/scandum/rotate>>
-///
-/// ## Example
-///
-/// Case: `right > left`, `9 - 6`.
-///
-/// ```text
-///                            mid
-///   ls-->               <--le|rs-->       <--re
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // (ls -> le -> re -> rs -> ls)
-///   ╰───────────╮           ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈╮|
-///   ╭┈┈┈┈┈┈┈┈┈┈ ╰───────────╮┈┈╯╭────────── ┆╯
-///   ↓  ls               le  |   |rs       re┆
-/// [10  2  .  .  .  .  .  8  1 15╯11 ..... 14╰>9]  // (ls, le, re, rs)
-///      ╰────────╮        ╰┈┈┈┈┈╭┈┈╯ ┈┈┈┈┈╮|
-///      ╭┈┈┈┈┈┈┈ ╰────────╮┈┈┈┈┈╯  ╭───── ┆╯
-///      ↓  ls         le  |        | rs re┆
-/// [10 11  3  .  .  .  7  2  1 15 14 12 13╰>8  9]
-///         ╰─────╮     ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ╮|
-///         ╭┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭|╯
-///         ↓  ls   le  |             re┆
-/// [10  . 12  4  .  6  3  2  1 15 14 13╰>7  .  9]  // (ls, le, re)
-///            ╰──╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭┈┈╯
-///            ╭┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯┆
-///            ↓  ls |             re┆
-/// [10 ~~~~~ 13  5  4  3  2  1 15 14╰>6 ~~~~~~ 9]  // (ls, re)
-///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
-///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [10  .  .  . 14 15: 1  2  3* 4  5  .  .  .  9]
-/// ```
-///
-/// Case: `left < right`, `6 - 9`.
-///
-/// ```text
-///                   mid
-///   ls-->      <--le|rs-->                <--re
-/// [ 1  2  3  4  5  6* 7  8  9:10 11 12 13 14 15]  // (re -> rs -> ls -> le -> re)
-///   | ╭┈┈┈┈┈┈┈┈┈┈┈ ┆┈┈╯           ╭───────────╯
-///   ╰─┆ ──────────╮╰┈┈╭───────────╯ ┈┈┈┈┈┈┈┈┈┈╮
-///     ┆ls      le |   | rs                re  ↓
-/// [ 7<╯2  .  .  5 ╰1 15  8  .  .  .  .  . 14  6]  // (re, rs, ls, le)
-///      | ╭┈┈┈┈┈ ┆┈┈┈┈┈┈┈┈╯        ╭────────╯
-///      ╰─┆ ───╮ ╰┈┈┈┈┈┈┈┈╭────────╯ ┈┈┈┈┈┈┈╮
-///        ┆lsle|          | rs          re  ↓
-/// [ 7  8<╯3  4╰~2  1 15 14  9  .  .  . 13  5  6]
-///         |╭ ┆┈┈┈┈┈┈┈┈┈┈┈╯        ╭─────╯
-///         ╰┆╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭─────╯ ┈┈┈┈╮
-///          ┆┆ls             | rs    re  ↓
-/// [ 7  .  9╯╰3  2  1 15 14 13 10 11 12  4  .  6]  // (re, rs, ls)
-///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
-///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ ls             | re  ↓
-/// [ 7 ~~~~~ 10╯ 2  1 15 14 13 12 11  3 ~~~~~~ 6]  // (re, ls)
-///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
-///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [ 7  .  .  . 11 12*13 14 15: 1  2  .  .  .  6]
-/// ```
-///
-/// Case: `left > right`, `8 - 7`.
-///
-/// ```text
-///                         mid
-///   ls-->            <--le|rs-->          <--re
-/// [ 1  2  3  4  5  6  7: 8* 9 10 11 12 13 14 15]  // (ls -> le -> re -> rs -> ls)
-///   ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮|
-///   ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭───────────── ┆╯
-///   ↓  ls             le |   |rs          re┆
-/// [ 9  2  .  .  .  .  7  1 15╯10 11 12 13 14╰>8]  // (ls, le, re, rs)
-///      ╰────────╮     ╰┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈┈╮|
-///      ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈╯ ╭─────── ┆╯
-///      ↓  ls      le  |         |rs    re┆
-/// [ 9 10  3  .  .  6  2  1 15 14╯11 12 13╰>7  8]  // (ls, le, re, rs)
-///         ╰─────╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ┈┈╮|
-///         ╭┈┈┈┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭─ ┆╯
-///         ↓  lsle  |               |rs┆
-/// [ 9  . 11  4  5╮ 3  2  1 15 14 13╯12╰>6  .  8]  // (ls, le, rs)
-///            ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮|
-///            ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆╯
-///            ↓  ls               re┆
-/// [ 9 ~~~~~ 12  4  3  2  1 15 14 13╰>5 ~~~~~~ 8]  // (ls, re)
-///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
-///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [ 9  .  .  . 13 14 15: 1* 2  3  4  .  .  .  8]
-/// ```
 pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
     // return;
@@ -1542,45 +1487,6 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buff
 
     ptr_contrev_rotate(left, mid, right);
 }
-
-// /// # Combined rotation
-// ///
-// /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-// /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-// /// right.
-// ///
-// /// # Safety
-// ///
-// /// The specified range must be valid for reading and writing.
-// ///
-// /// # Algorithm
-// ///
-// /// This rotation combines four algorithms:
-// ///
-// /// 1. **Auxiliary rotation** — if left or right side fits in buffer (`32 * size_of(usize)` bytes);
-// /// 2. **Bridge rotation** — if the overlap fits in buffer;
-// /// 3. **Piston rotation** — otherwise.
-// pub unsafe fn ptr_comb_rotate<T>(left: usize, mid: *mut T, right: usize) {
-// type BufType = [usize; 32];
-//
-// if T::IS_ZST {
-// return;
-// }
-//
-// if cmp::min(left, right) <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() {
-// ptr_aux_rotate(left, mid, right);
-// return;
-// }
-//
-// let d = right.abs_diff(left);
-//
-// if d <= std::mem::size_of::<BufType>() / std::mem::size_of::<T>() && d > 3 {
-// ptr_bridge_rotate(left, mid, right);
-// return;
-// }
-//
-// ptr_piston_rotate(left, mid, right);
-// }
 
 /// # Algo1 (juggler) rotation
 ///
@@ -1614,17 +1520,17 @@ pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buff
 ///           left = 9         |    right = 6
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]                      // round
 ///   └─────────────────┐
-/// [ ✘  2  .  .  .  6  1  8  .  .  .  .  .  . 15] [ 7]
-///                                       ┌──────────┘
+/// [ ✘  2  .  .  .  6  1  8  .  .  .  .  .  . 15]   [ 7]
+///                                       ┌────────────┘
 ///                     _                 ↓
-/// [ ✘  2  .  .  .  6  1  8  .  .  . 12  7 14 15] [13]
-///            ┌─────────────────────────────────────┘
+/// [ ✘  2  .  .  .  6  1  8  .  .  . 12  7 14 15]   [13]
+///            ┌───────────────────────────────────────┘
 ///            ↓        _                 _
-/// [ ✘  2  3 13  5  6  1  8  .  .  . 12  7 14 15] [ 4]
-///                              ┌───────────────────┘
+/// [ ✘  2  3 13  5  6  1  8  .  .  . 12  7 14 15]   [ 4]
+///                              ┌─────────────────────┘
 ///            _        _        ↓        _
-/// [ ✘  2  3 13  5  6  1  8  9  4 11 12  7 14 15] [10]
-///   ┌──────────────────────────────────────────────┘
+/// [ ✘  2  3 13  5  6  1  8  9  4 11 12  7 14 15]   [10]
+///   ┌────────────────────────────────────────────────┘
 ///   ↓        _        _        _        _
 /// [10  2  3 13  5  6  1  8  9  4 11 12  7 14 15]                      // round
 ///      |        |        |        |        └──────────────────╮
@@ -1672,7 +1578,7 @@ pub unsafe fn ptr_algo1_rotate<T>(left: usize, mid: *mut T, right: usize) {
             tmp = start.add(i).replace(tmp);
 
             // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the nestartt increment. This prevents
+            // check if `i` will go outside the bounds on the next increment. This prevents
             // any wrapping of pointers or `usize`.
             if i >= left {
                 i -= left;
