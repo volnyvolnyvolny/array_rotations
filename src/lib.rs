@@ -1239,16 +1239,10 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
         // beginning of first round
         let mut tmp: T = start.read();
         let mut i = 0;
+        let mut next = i + right;
 
-        // benchmarks reveal that it is faster to swap temporaries all the way through instead
-        // of reading one temporary once, copying backwards, and then writing that temporary at
-        // the very end. This is possibly due to the fact that swapping or replacing temporaries
-        // uses only one memory address in the loop instead of needing to manage two.
         loop {
-            // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the next increment. This prevents
-            // any wrapping of pointers or `usize`.
-            if i == left {
+            if next == left + right {
                 // end of first round
                 start.write(tmp);
                 break;
