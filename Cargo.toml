@@ -8,7 +8,7 @@ edition = "2021"
 criterion = {version = "0.4", features = ["html_reports"]}
 
 [[bench]]
-name = "bench_rotations"
+name = "rotations"
 harness = false
 
 [dependencies]
