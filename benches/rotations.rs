@@ -287,6 +287,8 @@ fn buf_test(
 // }
 
 fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
+    use criterion::black_box;
+
     let mut group = c.benchmark_group(format!("Bridge/{length}"));
     //    group.throughput(Throughput::Elements(length as u64));
 
@@ -303,34 +305,34 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
         let r = length - l;
 
         group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| {
-            b.iter(|| test(ptr_contrev_rotate::<usize>, l.clone(), p, r))
+            b.iter(|| black_box(test(ptr_contrev_rotate::<usize>, l.clone(), p, r)))
         });
         group.bench_with_input(BenchmarkId::new("Algo1", l), l, |b, l| {
-            b.iter(|| test(ptr_algo1_rotate::<usize>, l.clone(), p, r))
+            b.iter(|| black_box(test(ptr_algo1_rotate::<usize>, l.clone(), p, r)))
         });
         // group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, l| {
         //     b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), p, r))
         // });
         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, l| {
             b.iter(|| {
-                buf_test(
+                black_box(buf_test(
                     ptr_bridge_rotate::<usize>,
                     l.clone(),
                     p,
                     r,
                     buffer.as_mut_slice(),
-                )
+                ))
             })
         });
         group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, l| {
             b.iter(|| {
-                buf_test(
+                black_box(buf_test(
                     ptr_aux_rotate::<usize>,
                     l.clone(),
                     p,
                     r,
                     buffer.as_mut_slice(),
-                )
+                ))
             })
         });
     }

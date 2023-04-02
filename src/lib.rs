@@ -632,18 +632,18 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
         //     ptr::swap_nonoverlapping(start, mid, left);
         //     ptr::swap_nonoverlapping(start, mid.add(left), left);
         // } else {
-        ptr::copy_nonoverlapping(mid, buf, right);
-        ptr::copy(start, dim, left);
-        ptr::copy_nonoverlapping(buf, start, right);
+        ptr::copy_nonoverlapping(start, buf, left);
+        ptr::copy(mid, start, right);
+        ptr::copy_nonoverlapping(buf, dim, left);
         // }
     } else if right < left {
         // if left == right * 2 {
         //     ptr::swap_nonoverlapping(start.add(right), mid, right);
         //     ptr::swap_nonoverlapping(start, start.add(right), right);
         // } else {
-        ptr::copy_nonoverlapping(start, buf, left);
-        ptr::copy(mid, start, right);
-        ptr::copy_nonoverlapping(buf, dim, left);
+        ptr::copy_nonoverlapping(mid, buf, right);
+        ptr::copy(start, dim, left);
+        ptr::copy_nonoverlapping(buf, start, right);
         // }
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
