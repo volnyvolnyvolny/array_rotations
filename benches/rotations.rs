@@ -253,7 +253,7 @@ fn buf_test(
 fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
     use criterion::black_box;
 
-    let mut group = c.benchmark_group(format!("Bridge/{length}"));
+    let mut group = c.benchmark_group(format!("All/{length}"));
     //    group.throughput(Throughput::Elements(length as u64));
 
     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
@@ -452,7 +452,8 @@ criterion_group! {
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
 
-    targets = bench_all, bench_bridge
+    // targets = bench_all, bench_bridge
+    targets = bench_all
 }
 
 criterion_main!(benches);
