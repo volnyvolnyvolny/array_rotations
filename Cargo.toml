@@ -11,6 +11,10 @@ criterion = {version = "0.4", features = ["html_reports"]}
 name = "rotations"
 harness = false
 
+[[bench]]
+name = "copies"
+harness = false
+
 [dependencies]
 gcd = "2.3.0"
 pprof = {version = "0.11.1", features =  ["flamegraph", "criterion"]}

@@ -36,7 +36,7 @@ use std::slice;
 
 // use gcd::Gcd;
 
-mod utils;
+pub mod utils;
 pub use utils::*;
 
 /// # Triple reversal rotation
