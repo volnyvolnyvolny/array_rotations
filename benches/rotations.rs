@@ -93,42 +93,6 @@ fn buf_test(
 //     group.finish();
 // }
 
-// fn case_all(c: &mut Criterion, len: usize, ls: &[usize]) {
-//     let mut group = c.benchmark_group(format!("All rotations (len = {len})").as_str());
-//     let mut v = seq(len);
-
-//     for l in ls {
-//         let p =
-//             unsafe {
-//                 let p = &v[..].as_mut_ptr().add(l.clone());
-//                 p.clone()
-//             };
-
-//         let r = len - l;
-
-//         group.bench_with_input(BenchmarkId::new("Aux", l),      l, |b, l| b.iter(|| test(ptr_aux_rotate::<usize>,        l.clone(), p, r)));
-//         group.bench_with_input(BenchmarkId::new("Bridge", l),   l, |b, l| b.iter(|| test(ptr_bridge_rotate::<usize>,     l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("Default", l),  l, |b, l| b.iter(|| test(stable_ptr_rotate::<usize>,     l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("Piston", l),   l, |b, l| b.iter(|| test(ptr_piston_rotate::<usize>,     l.clone(), p, r)));
-//         group.bench_with_input(BenchmarkId::new("Helix", l),    l, |b, l| b.iter(|| test(ptr_helix_rotate::<usize> ,     l.clone(), p, r)));
-//         group.bench_with_input(BenchmarkId::new("Grail", l),    l, |b, l| b.iter(|| test(ptr_grail_rotate::<usize>,      l.clone(), p, r)));
-//         group.bench_with_input(BenchmarkId::new("Drill", l),    l, |b, l| b.iter(|| test(ptr_drill_rotate::<usize>,      l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("GM_rec", l),       l, |b, l| b.iter(|| test(ptr_griesmills_rotate_rec::<usize>, l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("Rev", l),      l, |b, l| b.iter(|| test(ptr_reversal_rotate::<usize>,   l.clone(), p, r)));
-//         group.bench_with_input(BenchmarkId::new("Contrev", l),  l, |b, l| b.iter(|| test(ptr_contrev_rotate::<usize>,    l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("Trinity", l),  l, |b, l| b.iter(|| test(ptr_trinity_rotate::<usize>,    l.clone(), p, r)));
-
-//         group.bench_with_input(BenchmarkId::new("Juggling", l), l, |b, l| b.iter(|| test(ptr_juggling_rotate::<usize>,   l.clone(), p, r)));
-//     }
-
-//     group.finish();
-// }
-
 // fn case(c: &mut Criterion, len: usize, ls: &[usize]) {
 //     let mut group = c.benchmark_group(format!("Rotations (Stable vs Piston) (len = {len}) [left]").as_str());
 //     let mut v = seq(len);
@@ -286,6 +250,97 @@ fn buf_test(
 //     group.finish();
 // }
 
+fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
+    use criterion::black_box;
+
+    let mut group = c.benchmark_group(format!("Bridge/{length}"));
+    //    group.throughput(Throughput::Elements(length as u64));
+
+    // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
+    let mut buffer = vec![0; length];
+    let mut v = seq(length);
+
+    for l in ls {
+        let p = unsafe {
+            let p = &v[..].as_mut_ptr().add(l.clone());
+            p.clone()
+        };
+
+        let r = length - l;
+
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, l| {
+            b.iter(|| black_box(test(ptr_contrev_rotate::<usize>, l.clone(), p, r)))
+        });
+        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, l| {
+            b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, l| {
+            b.iter(|| {
+                black_box(buf_test(
+                    ptr_bridge_rotate::<usize>,
+                    l.clone(),
+                    p,
+                    r,
+                    buffer.as_mut_slice(),
+                ))
+            })
+        });
+        group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, l| {
+            b.iter(|| {
+                black_box(buf_test(
+                    ptr_raft_rotate::<usize>,
+                    l.clone(),
+                    p,
+                    r,
+                    buffer.as_mut_slice(),
+                ))
+            })
+        });
+        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, l| {
+            b.iter(|| {
+                black_box(buf_test(
+                    ptr_aux_rotate::<usize>,
+                    l.clone(),
+                    p,
+                    r,
+                    buffer.as_mut_slice(),
+                ))
+            })
+        });
+
+        group.bench_with_input(BenchmarkId::new("Default", l), l, |b, l| {
+            b.iter(|| test(stable_ptr_rotate::<usize>, l.clone(), p, r))
+        });
+
+        group.bench_with_input(BenchmarkId::new("Piston", l), l, |b, l| {
+            b.iter(|| test(ptr_piston_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, l| {
+            b.iter(|| test(ptr_helix_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, l| {
+            b.iter(|| test(ptr_grail_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, l| {
+            b.iter(|| test(ptr_drill_rotate::<usize>, l.clone(), p, r))
+        });
+
+        group.bench_with_input(BenchmarkId::new("GM_rec", l), l, |b, l| {
+            b.iter(|| test(ptr_griesmills_rotate_rec::<usize>, l.clone(), p, r))
+        });
+
+        group.bench_with_input(BenchmarkId::new("Rev", l), l, |b, l| {
+            b.iter(|| test(ptr_reversal_rotate::<usize>, l.clone(), p, r))
+        });
+
+        // group.bench_with_input(BenchmarkId::new("Trinity", l), l, |b, l| {
+        //     b.iter(|| test(ptr_trinity_rotate::<usize>, l.clone(), p, r))
+        // });
+    }
+
+    group.finish();
+}
+
 fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     use criterion::black_box;
 
@@ -355,6 +410,8 @@ fn bench_bridge(c: &mut Criterion) {
 }
 
 fn bench_all(c: &mut Criterion) {
+    case_all(c, 1002, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
+
     // case_all(c,   10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     // case_all(c,  100, &[0, 1, 16, 32, 33, 40, 50, 60, 67, 68, 100]);
     // case_all(c, 1000, &[0, 32, 33, 100, 200, 300, 400, 500, 600, 700, 800, 900, 967, 968, 1000]);
@@ -381,6 +438,8 @@ fn bench_all(c: &mut Criterion) {
     // case(c,   100000, &[1,            32,    49980,    49990]);
     // case(c,  1000000, &[100, 100000, 200000, 300000, 400000, 499990]);
     // case(c, 10000000, &[1,            32, 100, 1000, 100000, 1000000, 2000000, 3000000, 4000000, 4999980,  4999990]);
+
+    // group.finish();
 }
 
 criterion_group! {
