@@ -197,10 +197,56 @@ fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     group.finish();
 }
 
+fn case_gm_helix(c: &mut Criterion, length: usize, ls: &[usize]) {
+    use criterion::black_box;
+
+    let mut group = c.benchmark_group(format!("GM/{length}"));
+    //    group.throughput(Throughput::Elements(length as u64));
+
+    // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
+    let mut buffer = Vec::<usize>::with_capacity(length);
+    let mut v = seq(length);
+
+    for l in ls {
+        let p = unsafe {
+            let p = &v[..].as_mut_ptr().add(l.clone());
+            p.clone()
+        };
+
+        let r = length - l;
+
+        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, l| {
+            b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, l| {
+            b.iter(|| test(ptr_helix_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, l| {
+            b.iter(|| test(ptr_grail_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, l| {
+            b.iter(|| test(ptr_drill_rotate::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("GM_rec", l), l, |b, l| {
+            b.iter(|| test(ptr_griesmills_rotate_rec::<usize>, l.clone(), p, r))
+        });
+        group.bench_with_input(BenchmarkId::new("GM", l), l, |b, l| {
+            b.iter(|| test(ptr_griesmills_rotate::<usize>, l.clone(), p, r))
+        });
+    }
+
+    group.finish();
+}
+
 fn bench_bridge(c: &mut Criterion) {
     // case_bridge(c, 15,  &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     // case_bridge(c, 101, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 101]);
     case_bridge(c, 1002, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
+}
+
+fn bench_gm_helix(c: &mut Criterion) {
+    case_gm_helix(c, 1002, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
+    case_gm_helix(c, 102, &[1, 20, 34, 40, 51, 68, 80, 90, 101]);
 }
 
 fn bench_all(c: &mut Criterion) {
@@ -247,7 +293,7 @@ criterion_group! {
              //  );
 
     // targets = bench_all, bench_bridge
-    targets = bench_all
+    targets = bench_all, bench_gm_helix, bench_bridge
 }
 
 criterion_main!(benches);
