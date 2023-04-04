@@ -157,6 +157,79 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
     }
 }
 
+/// # Gries-Mills rotation
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes
+/// the first element. Equivalently, rotates the range `left` elements to the left
+/// or `right` elements to the right.
+///
+/// ## Algorithm
+///
+/// 1. Swap the shadow to its place;
+/// 2. rotate smaller array.
+///
+/// "You swap the smallest array linearly towards its proper location,
+/// since the blocks behind it are in the proper location you can forget about them.
+/// What remains of the larger array is now the smallest array, which you rotate in
+/// a similar manner, until the smallest side shrinks to `0` elements. Its first known
+/// publication was in *1981* by *David Gries* and *Harlan Mills*."
+/// <<https://github.com/scandum/rotate>>
+///
+/// ## Performance
+///
+/// "In some cases this rotation outperforms the classic *Triple reversal rotation*
+/// while making fewer moves." <<https://github.com/scandum/rotate>>
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///                  𝑠ℎ𝑎𝑑𝑜𝑤    mid
+///           left = 9         |     right = 6
+/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap r-side and shadow
+///            └──────────────┴/\┴──────────────┘
+///            ┌──────────────┬\~┬──────────────┐
+/// [ 1  .  3 10  .  .  .  . 15  4 ~~~~~~~~~~~~ 9]
+///
+///    l = 3     𝑠ℎ. r = 6
+/// [ 1  .  3,10  . 12:13  . 15] 4  .  .  .  .  9   // swap new l-side and new shadow
+///   └─────┴/\┴─────┘
+///   ┌─────┬~/┬─────┐
+/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9
+///
+///             l = 3   r = 3
+///  10 ~~ 12[ 1  .  3;13  . 15] 4  .  .  .  .  9   // swap equal
+///            └─────┴/\┴─────┘
+///            ┌─────┬~~┬─────┐
+///  10 ~~ 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
+///
+/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
+/// ```
+pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+    // if T::IS_ZST {
+    // return;
+    // }
+
+    loop {
+        if (right == 0) || (left == 0) {
+            return;
+        }
+
+        if left < right {
+            ptr::swap_nonoverlapping(mid.sub(left), mid, left);
+            right = right - left;
+            mid = mid.add(left);
+        } else {
+            ptr::swap_nonoverlapping(mid, mid.sub(right), right);
+            left = left - right;
+            mid = mid.sub(right);
+        }
+    }
+}
+
 /// # Grail rotation (Gries-Mills rotation + *swap_backward*)
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
@@ -1804,6 +1877,11 @@ mod tests {
     #[test]
     fn ptr_griesmills_rotate_rec_correctness() {
         test_correctness(ptr_griesmills_rotate_rec::<usize>);
+    }
+
+    #[test]
+    fn ptr_griesmills_rotate_correctness() {
+        test_correctness(ptr_griesmills_rotate::<usize>);
     }
 
     #[test]
