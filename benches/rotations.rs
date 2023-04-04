@@ -246,7 +246,11 @@ fn bench_bridge(c: &mut Criterion) {
 
 fn bench_gm_helix(c: &mut Criterion) {
     case_gm_helix(c, 1002, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
-    case_gm_helix(c, 102, &[1, 20, 34, 40, 51, 68, 80, 90, 101]);
+    case_gm_helix(
+        c,
+        102,
+        &[1, 10, 20, 30, 34, 40, 45, 51, 60, 68, 75, 80, 90, 95, 101],
+    );
 }
 
 fn bench_all(c: &mut Criterion) {
