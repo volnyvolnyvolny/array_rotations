@@ -134,7 +134,7 @@ fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
             b.iter(|| backward_test(copy_backward::<usize>, *start, *d, count))
         });
         group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
+            BenchmarkId::new("ptr::copy_nonoverlapping (! )", d),
             d,
             |b, _| b.iter(|| backward_test(ptr::copy_nonoverlapping::<usize>, *start, *d, count)),
         );
