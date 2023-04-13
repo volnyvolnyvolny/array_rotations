@@ -134,11 +134,10 @@ fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
             b.iter(|| backward_test(copy_backward::<usize>, *start, *d, count))
         });
         group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping (! )", d),
+            BenchmarkId::new("*ptr::copy_nonoverlapping", d),
             d,
             |b, _| b.iter(|| backward_test(ptr::copy_nonoverlapping::<usize>, *start, *d, count)),
         );
-
         group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _| {
             b.iter(|| backward_test(ptr::copy::<usize>, *start, *d, count))
         });
@@ -171,7 +170,7 @@ fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
 /// cargo bench --bench=copies "Copy forward/2"
 /// cargo bench --bench=copies "Copy forward/10"
 fn bench_copy_distance(c: &mut Criterion) {
-    case_copy_distance(c, 1, &[0, 1, 2, 3, 4, 5, 10, 15, 20, 30, 50]);
+    case_copy_distance(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100, 250, 500]);
     // case_copy_distance(c, 3, &[0, 1, 2]);
     // case_copy_distance(c, 5, &[0, 1, 2, 3, 4, 5]);
     // case_copy_distance(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
