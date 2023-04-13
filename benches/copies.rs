@@ -147,7 +147,6 @@ fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
 }
 
 // /// cargo bench --bench=copies "Copy forward/2"
-// /// cargo bench --bench=copies "Copy forward/10"
 // fn bench_distant_copy(c: &mut Criterion) {
 //     case_distant_copy(c, 2, &[0, 1]);
 //     case_distant_copy(c, 3, &[0, 1, 2]);
@@ -167,10 +166,11 @@ fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
 //     );
 // }
 
-/// cargo bench --bench=copies "Copy forward/2"
-/// cargo bench --bench=copies "Copy forward/10"
+/// cargo bench --bench=copies "Copy distance/1"
 fn bench_copy_distance(c: &mut Criterion) {
     case_copy_distance(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100, 250, 500]);
+    case_copy_distance(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 100, 250, 500]);
+
     // case_copy_distance(c, 3, &[0, 1, 2]);
     // case_copy_distance(c, 5, &[0, 1, 2, 3, 4, 5]);
     // case_copy_distance(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
