@@ -51,7 +51,7 @@ fn backward_test<T>(
     distance: usize,
     count: usize,
 ) {
-    unsafe { copy(end.sub(count), end.sub(count - distance), count) }
+    unsafe { copy(end.sub(count), end.sub(count + distance), count) }
 }
 
 /// ```text
