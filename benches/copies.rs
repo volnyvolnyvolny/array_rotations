@@ -165,7 +165,7 @@ fn bench_copy_forward(c: &mut Criterion) {
     // case_copy_forward(c, 3, &[0, 1, 2]);
     // case_copy_forward(c, 5, &[0, 1, 2, 3, 4, 5]);
     case_copy_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward(c, 100_000, &[0, 50_000, 100_000, 150_000]);
+    case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 100_000]);
 
     // case_copy_forward(
     //     c,
