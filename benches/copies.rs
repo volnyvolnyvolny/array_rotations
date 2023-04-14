@@ -161,44 +161,14 @@ fn bench_copy_distance(c: &mut Criterion) {
 
 /// cargo bench --bench=copies "Copy forward/2"
 fn bench_copy_forward(c: &mut Criterion) {
-    // case_copy_forward(c, 2, &[0, 1]);
-    // case_copy_forward(c, 3, &[0, 1, 2]);
-    // case_copy_forward(c, 5, &[0, 1, 2, 3, 4, 5]);
     case_copy_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 100_000]);
-
-    // case_copy_forward(
-    //     c,
-    //     15,
-    //     &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    // );
-    // case_copy_forward(
-    //     c,
-    //     20,
-    //     &[
-    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    //     ],
-    // );
+    case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 95_000, 100_000]);
 }
 
 /// cargo bench --bench=copies "Copy backward/2"
 fn bench_copy_backward(c: &mut Criterion) {
-    // case_copy_backward(c, 2, &[0, 1]);
-    // case_copy_backward(c, 3, &[0, 1, 2]);
-    // case_copy_backward(c, 5, &[0, 1, 2, 3, 4, 5]);
     case_copy_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    // case_copy_backward(
-    //     c,
-    //     15,
-    //     &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    // );
-    // case_copy_backward(
-    //     c,
-    //     20,
-    //     &[
-    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    //     ],
-    // );
+    case_copy_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 95_000, 100_000]);
 }
 
 criterion_group! {
