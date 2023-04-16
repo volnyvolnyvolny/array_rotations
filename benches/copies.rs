@@ -162,13 +162,13 @@ fn bench_copy_distance(c: &mut Criterion) {
 /// cargo bench --bench=copies "Copy forward/2"
 fn bench_copy_forward(c: &mut Criterion) {
     case_copy_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 95_000, 100_000]);
+    case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
 /// cargo bench --bench=copies "Copy backward/2"
 fn bench_copy_backward(c: &mut Criterion) {
     case_copy_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 95_000, 100_000]);
+    case_copy_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
 criterion_group! {

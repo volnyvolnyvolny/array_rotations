@@ -1,28 +1,10 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use pprof::criterion::{Output, PProfProfiler};
-use rust_rotates::*;
+
+use rust_rotates::utils::*;
 
 // use std::time::Duration;
-// use std::ptr;
-
-// fn div(s: usize, diff: usize) -> (usize, usize) {
-// assert!(s >= diff);
-// assert!(s % 2 == diff % 2);
-//
-// let r = s / 2 - diff / 2;
-//
-// (s - r, r)
-// }
-
-// fn prepare(size: usize, diff: usize) -> (Vec<usize>, (usize, *mut usize, usize)) {
-// let (l, r) = div(size, diff);
-// let mut v = seq(size);
-//
-// unsafe {
-// let p = &v[..].as_mut_ptr().add(l);
-// (v, (l, p.clone(), r))
-// }
-// }
+use std::ptr;
 
 fn seq(size: usize) -> Vec<usize> {
     let mut v = vec![0; size];
@@ -32,76 +14,122 @@ fn seq(size: usize) -> Vec<usize> {
     v
 }
 
-fn test(
-    rotate: unsafe fn(left: usize, mid: *mut usize, right: usize),
-    left: usize,
-    p: *mut usize,
-    right: usize,
-) {
-    //    if left <= right {
-    unsafe { rotate(left, p, right) }
-    // unsafe{ rotate(right, p.add(right - left), left) }
-    // } else {
-    // unsafe{ rotate(left, p, right) }
-    // unsafe{ rotate(right, p.sub(left - right), left) }
-    // }
-}
-
-fn test_swap<T>(
-    swap: unsafe fn(x: *mut T, y: *mut T, count: usize),
-    x: *mut T,
-    y: *mut T,
+/// ```text
+///  start
+///  |                                 count = 3
+/// [1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
+///  [:///:] ------>                     [:\\\:]
+///  src                                 dst
+///
+/// [1  .  .  .  .  .  .  .  .  .  .  .  1 14 15]
+/// [1  2  .  .  .  .  .  .  .  .  .  .  1  2 15]
+/// [1  .  3  .  .  .  .  .  .  .  .  .  1 ~~~ 3]
+/// ```
+fn forward_test<T>(
+    swap: unsafe fn(src: *mut T, dst: *mut T, count: usize),
+    start: *mut T,
+    distance: usize,
     count: usize,
 ) {
-    if left <= right {
-        unsafe { swap(x, y, count) }
-        // unsafe{ rotate(right, p.add(right - left), left) }
-    } else {
-        // unsafe{ rotate(left, p, right) }
-        // unsafe{ rotate(right, p.sub(left - right), left) }
-    }
+    unsafe { swap(start, start.add(distance), count) }
 }
 
-fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("All/{length}"));
-    let mut v = seq(*ls.into_iter().max().unwrap());
+/// ```text
+///                                              end
+///                                    count = 3 |
+/// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
+///   [:\\\:]                    <------  [:///:]
+///   dst                                 src
+///
+/// [ 1  2 15  .  .  .  .  .  .  .  .  .  .  . 15]
+/// [ 1 14  .  .  .  .  .  .  .  .  .  .  . 14 15]
+/// [13 ~~ 15  .  .  .  .  .  .  .  .  . 13  . 15]
+/// ```
+fn backward_test<T>(
+    swap: unsafe fn(src: *mut T, dst: *mut T, count: usize),
+    end: *mut T,
+    distance: usize,
+    count: usize,
+) {
+    unsafe { swap(end.sub(count), end.sub(count + distance), count) }
+}
 
-    for l in ls {
-        let start = unsafe {
-            let x = &v[..].as_mut_ptr();
-            x.clone()
-        };
+/// ```text
+///   count = 4
+///   start
+///   |
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///         d = 3
+/// [ 1  2  1  2  3  4  7  8  9]
+///         [:\\\\\\:]
+/// ```
+fn case_swap_forward(c: &mut Criterion, count: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Swap forward/{count}"));
+    let mut v = seq(count * 2 + 1);
 
-        let y = unsafe { x.add(l / 2) };
+    for d in distances {
+        let start = &v[..].as_mut_ptr();
 
-        group.bench_with_input(BenchmarkId::new("ptr::swap", l), count, |b, l| {
-            b.iter(|| test_swap(ptr::swap_nonoverlapping::<usize>, x, y, count))
+        group.bench_with_input(BenchmarkId::new("*utils::swap_forward", d), d, |b, _| {
+            b.iter(|| forward_test(swap_forward::<usize>, *start, *d, count))
+        });
+        group.bench_with_input(BenchmarkId::new("utils::swap_backward", d), d, |b, _| {
+            b.iter(|| forward_test(swap_backward::<usize>, *start, *d, count))
         });
         group.bench_with_input(
-            BenchmarkId::new("ptr::swap_nonoverlapping", l),
-            count,
-            |b, l| b.iter(|| test_swap(ptr::swap_nonoverlapping::<usize>, x, y, count)),
+            BenchmarkId::new("ptr::swap_nonoverlapping", d),
+            d,
+            |b, _d| b.iter(|| forward_test(ptr::swap_nonoverlapping::<usize>, *start, *d, count)),
         );
-        group.bench_with_input(
-            BenchmarkId::new("utils::copy_backward", l),
-            count,
-            |b, l| b.iter(|| test_swap(ptr::swap_nonoverlapping::<usize>, x, y, count)),
-        );
-        group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping", count),
-            count,
-            |b, l| b.iter(|| test_swap(ptr::copy_nonoverlapping::<usize>, x, y, count)),
-        );
-        group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, l| {
-            b.iter(|| test_swap(ptr::copy::<usize>, start, y, count))
-        });
     }
 
     group.finish();
 }
 
-fn bench_all(c: &mut Criterion) {
-    case_all(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+/// ```text
+///   start
+///   |               count = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///                  [:\\\\\\:]
+///                     d = 3
+/// [ 1  2  1  2  3  4  7  8  9]
+///            [://////:]
+/// ```
+fn case_swap_backward(c: &mut Criterion, count: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Swap backward/{count}"));
+    let len = count * 2 + 1;
+    let mut v = seq(len);
+
+    for d in distances {
+        let end = unsafe { &v[..].as_mut_ptr().add(len) };
+
+        group.bench_with_input(BenchmarkId::new("utils::swap_forward", d), d, |b, _d| {
+            b.iter(|| backward_test(swap_forward::<usize>, *end, *d, count))
+        });
+        group.bench_with_input(BenchmarkId::new("*utils::swap_backward", d), d, |b, _d| {
+            b.iter(|| backward_test(swap_backward::<usize>, *end, *d, count))
+        });
+        group.bench_with_input(
+            BenchmarkId::new("ptr::swap_nonoverlapping", d),
+            d,
+            |b, _d| b.iter(|| backward_test(ptr::swap_nonoverlapping::<usize>, *end, *d, count)),
+        );
+    }
+
+    group.finish();
+}
+
+/// cargo bench --bench=copies "Swap forward/2"
+fn bench_swap_forward(c: &mut Criterion) {
+    case_swap_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_swap_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+}
+
+/// cargo bench --bench=copies "Swap backward/2"
+fn bench_swap_backward(c: &mut Criterion) {
+    case_swap_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_swap_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
 criterion_group! {
@@ -114,7 +142,7 @@ criterion_group! {
                   PProfProfiler::new(100, Output::Flamegraph(None))
               );
 
-    targets = bench_all
+    targets = bench_swap_backward, bench_swap_forward
 }
 
 criterion_main!(benches);
