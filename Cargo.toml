@@ -15,6 +15,10 @@ harness = false
 name = "copies"
 harness = false
 
+[[bench]]
+name = "swaps"
+harness = false
+
 [dependencies]
 gcd = "2.3.0"
 pprof = {version = "0.11.1", features =  ["flamegraph", "criterion"]}

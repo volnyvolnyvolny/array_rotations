@@ -120,13 +120,13 @@ fn case_swap_backward(c: &mut Criterion, count: usize, distances: &[usize]) {
     group.finish();
 }
 
-/// cargo bench --bench=copies "Swap forward/2"
+/// cargo bench --bench=copies "Swap forward/10"
 fn bench_swap_forward(c: &mut Criterion) {
     case_swap_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     case_swap_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
-/// cargo bench --bench=copies "Swap backward/2"
+/// cargo bench --bench=copies "Swap backward/10"
 fn bench_swap_backward(c: &mut Criterion) {
     case_swap_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     case_swap_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
