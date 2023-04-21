@@ -95,7 +95,7 @@ fn case_copy_forward(c: &mut Criterion, count: usize, distances: &[usize]) {
 ///   |               count = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///                  [:\\\\\\:]
-///                     d = 3
+///                       d = 3
 /// [ 1  2  1  2  3  4  7  8  9]
 ///            [://////:]
 /// ```
@@ -126,6 +126,15 @@ fn case_copy_backward(c: &mut Criterion, count: usize, distances: &[usize]) {
     group.finish();
 }
 
+/// ```text
+///   start           
+///   |               count = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///                       d = 3
+/// [ 1  2  1  2  3  4  7  8  9]
+///            [://////:]
+/// ```
 fn case_copy_distance(c: &mut Criterion, count: usize, distances: &[usize]) {
     let mut group = c.benchmark_group(format!("Copy distances/{count}"));
     let max_distance = distances.iter().max().unwrap();
@@ -159,16 +168,16 @@ fn bench_copy_distance(c: &mut Criterion) {
     case_copy_distance(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50]);
 }
 
-/// cargo bench --bench=copies "Copy forward/2"
+/// cargo bench --bench=copies "Copy forward/10"
 fn bench_copy_forward(c: &mut Criterion) {
     case_copy_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     case_copy_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
-/// cargo bench --bench=copies "Copy backward/2"
+/// cargo bench --bench=copies "Copy backward/10"
 fn bench_copy_backward(c: &mut Criterion) {
     case_copy_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+    case_copy_backward(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
 }
 
 criterion_group! {
