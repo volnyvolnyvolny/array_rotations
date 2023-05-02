@@ -279,6 +279,17 @@ fn case_gm_helix(c: &mut Criterion, length: usize, ls: &[usize]) {
     group.finish();
 }
 
+fn bench_aux(c: &mut Criterion) {
+    case_aux(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_aux(c, 101, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 100]);
+    case_aux(c, 1001, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
+    case_aux(
+        c,
+        10001,
+        &[1, 2000, 3334, 4000, 5001, 6668, 8000, 9000, 10001],
+    );
+}
+
 fn bench_bridge(c: &mut Criterion) {
     // case_bridge(c, 15,  &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     // case_bridge(c, 101, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 101]);
@@ -339,7 +350,7 @@ criterion_group! {
              //  );
 
     // targets = bench_all, bench_bridge
-    targets = bench_all, bench_gm_helix, bench_bridge
+    targets = bench_all, bench_aux, bench_gm_helix, bench_bridge
 }
 
 criterion_main!(benches);
