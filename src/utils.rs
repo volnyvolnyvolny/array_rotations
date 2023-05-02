@@ -92,7 +92,7 @@ pub unsafe fn copy_backward<T>(src: *const T, dst: *mut T, count: usize) {
 /// [ 1  2  3: 4  5  6* 7  8  9 10 11 12 13 14 15]  // copy forward
 ///            └─────── |────────┘        |
 ///                     └─────────────────┘
-/// [ 1  .  3: 7 ~~~ 9 10 ~~~~~~~~~~~~~~ 13 14 15]
+/// [ 1  .  3: 7 ~~~~~~~~~~~~~~ 13 11  . 13 14 15]
 /// ```
 pub unsafe fn copy_forward<T>(src: *const T, dst: *mut T, count: usize) {
     let src = src.cast::<MaybeUninit<T>>();

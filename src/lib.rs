@@ -638,6 +638,8 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
 /// right.
 ///
+/// This implementation uses `copy_forward` and `copy_backward` that are faster than `ptr:copy`.
+///
 /// ## Algorithm
 ///
 /// "This is an easy and fast way to rotate, but since it requires
@@ -688,6 +690,91 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
+    // if T::IS_ZST {
+    // return;
+    // }
+
+    if (right == 0) || (left == 0) {
+        return;
+    }
+
+    let start = mid.sub(left);
+    let buf = buffer.as_mut_ptr();
+    let dim = start.add(right);
+
+    if left < right {
+        ptr::copy_nonoverlapping(start, buf, left);
+        copy_forward(mid, start, right);
+        ptr::copy_nonoverlapping(buf, dim, left);
+    } else if right < left {
+        ptr::copy_nonoverlapping(mid, buf, right);
+        copy_backward(start, dim, left);
+        ptr::copy_nonoverlapping(buf, start, right);
+    } else {
+        ptr::swap_nonoverlapping(start, mid, left);
+    }
+}
+
+/// # Auxiliary rotation (Naive)
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+/// right.
+///
+/// "Naive" implementation uses `ptr:copy` which is significantly slower than `copy_forward` and
+/// `copy_backward`.
+///
+/// ## Algorithm
+///
+/// "This is an easy and fast way to rotate, but since it requires
+/// auxiliary memory it is of little interest to in-place algorithms.
+/// It's a good strategy for array sizes of `1000` elements or less.
+/// The smaller half is copied to swap memory, the larger half is moved,
+/// and the swap memory is copied back to the main array." <<https://github.com/scandum/rotate>>
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///                            mid
+///        left = 9    dim     |        right = 6
+/// [ 1  2  3  4  5  6 :7  8  9*            10-15]                // move
+///                                          └──┴───────┬─────┐
+/// [              1-6 :7 ... 9  ✘  ✘  ✘  ✘  ✘  ✘]    [10 .. 15]  // move
+///                └────┬─────┴─────────────────┐
+/// [ ✘  ✘  ✘  ✘  ✘  ✘ :1 ~~~~~~~~~~~~~~~~~~~~~ 9]    [10-15   ]  // move
+///   ┌──────────────┬──────────────────────────────────┴──┘
+/// [10 ~~~~~~~~~~~ 15 :1  .  3* 4  .  .  .  .  9]
+/// ```
+///
+/// ```text
+///                                  mid
+///           left = 11              | right = 4
+/// [ 1  2  3  4: 5  6  7  8  9 10 11*      12-15]                // move
+///                                          └──┴───────┬─────┐
+/// [ 1  .  .  .  .  .  .  .  .  . 11  ✘  ✘  ✘  ✘]    [12 .. 15]  // move
+///   └───────────┬─────────────────┴───────────┐
+/// [ ✘  ✘  ✘  ✘  1 ~~~~~~~~~~~~~~~~~~~~~~~~~~ 11]    [12-15   ]  // move
+///   ┌────────┬────────────────────────────────────────┴──┘
+/// [12 ~~~~~ 15: 1  .  .  .  .  .  7* 8  .  . 11]
+/// ```
+///
+/// ```text
+///             mid
+///    left = 4 |           right = 11
+/// [      12-15* 1  2  3  4  5  6  7: 8  9 10 11]                // move
+///         └──┴────────────────────────────────────────┬─────┐
+/// [ ✘  ✘  ✘  ✘  1  .  .  .  .  .  .  .  .  . 11]    [12 .. 15]  // move
+///   ┌───────────┴─────────────────┬───────────┘
+/// [ 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~ 11  .  .  .  .]    [12-15   ]  // move
+///                                    ┌────────┬───────┴──┘
+/// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
+/// ```
+
+pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
     // return;
     // }
@@ -1846,6 +1933,11 @@ mod tests {
     #[test]
     fn ptr_aux_rotate_correctness() {
         test_buf_correctness(ptr_aux_rotate::<usize>);
+    }
+
+    #[test]
+    fn ptr_naive_aux_rotate_correctness() {
+        test_buf_correctness(ptr_naive_aux_rotate::<usize>);
     }
 
     #[test]

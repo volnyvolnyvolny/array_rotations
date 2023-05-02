@@ -130,6 +130,52 @@ fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
     group.finish();
 }
 
+fn case_aux(c: &mut Criterion, length: usize, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Aux/{length}"));
+    //    group.throughput(Throughput::Elements(length as u64));
+
+    // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
+    let mut buffer = Vec::<usize>::with_capacity(length);
+    let mut v = seq(length);
+
+    for l in ls {
+        let mid = unsafe {
+            let p = &v[..].as_mut_ptr().add(l.clone());
+            p.clone()
+        };
+
+        let r = length - l;
+
+        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
+            b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), mid, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Naive aux", l), l, |b, _| {
+            b.iter(|| {
+                buf_test(
+                    ptr_naive_aux_rotate::<usize>,
+                    l.clone(),
+                    mid,
+                    r,
+                    buffer.as_mut_slice(),
+                )
+            })
+        });
+        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
+            b.iter(|| {
+                buf_test(
+                    ptr_aux_rotate::<usize>,
+                    l.clone(),
+                    mid,
+                    r,
+                    buffer.as_mut_slice(),
+                )
+            })
+        });
+    }
+
+    group.finish();
+}
+
 fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
     use criterion::black_box;
 
