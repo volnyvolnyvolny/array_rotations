@@ -281,6 +281,7 @@ fn case_gm_helix(c: &mut Criterion, length: usize, ls: &[usize]) {
 
 fn bench_aux(c: &mut Criterion) {
     case_aux(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_aux(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
     case_aux(c, 101, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 100]);
     case_aux(c, 1001, &[1, 200, 334, 400, 501, 668, 800, 900, 1001]);
     case_aux(
