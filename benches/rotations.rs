@@ -5,10 +5,10 @@ use rust_rotates::*;
 // use std::time::Duration;
 // use std::ptr;
 
-fn seq(size: usize) -> Vec<usize> {
-    let mut v = vec![0; size];
+fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
+    let mut v = vec![[0; count]; size];
     for i in 0..size {
-        v[i] = i + 1;
+        v[i] = [i + 1; count];
     }
     v
 }
@@ -19,13 +19,7 @@ fn test<T>(
     p: *mut T,
     right: usize,
 ) {
-    //    if left <= right {
     unsafe { rotate(left, p, right) }
-    // unsafe{ rotate(right, p.add(right - left), left) }
-    // } else {
-    // unsafe{ rotate(left, p, right) }
-    // unsafe{ rotate(right, p.sub(left - right), left) }
-    // }
 }
 
 fn buf_test<T>(
@@ -35,13 +29,7 @@ fn buf_test<T>(
     right: usize,
     buffer: &mut [T],
 ) {
-    //    if left <= right {
     unsafe { rotate(left, p, right, buffer) }
-    // unsafe{ rotate(right, p.add(right - left), left) }
-    // } else {
-    // unsafe{ rotate(left, p, right) }
-    // unsafe{ rotate(right, p.sub(left - right), left) }
-    // }
 }
 
 // fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
@@ -130,12 +118,12 @@ fn buf_test<T>(
 //     group.finish();
 // }
 
-fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("Buf/{length}"));
+fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Buf/{length}/{count}"));
     //    group.throughput(Throughput::Elements(length as u64));
 
-    let mut buffer = Vec::<usize>::with_capacity(length);
-    let mut v = seq(length);
+    let mut buffer = Vec::<[usize; count]>::with_capacity(length);
+    let mut v = seq::<count>(length);
 
     for l in ls {
         let mid = unsafe {
@@ -146,12 +134,12 @@ fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
         let r = length - l;
 
         group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), mid, r))
+            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
         });
         group.bench_with_input(BenchmarkId::new("Naive aux", l), l, |b, _| {
             b.iter(|| {
                 buf_test(
-                    ptr_naive_aux_rotate::<usize>,
+                    ptr_naive_aux_rotate::<[usize; count]>,
                     l.clone(),
                     mid,
                     r,
@@ -162,7 +150,7 @@ fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
         group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
             b.iter(|| {
                 buf_test(
-                    ptr_aux_rotate::<usize>,
+                    ptr_aux_rotate::<[usize; count]>,
                     l.clone(),
                     mid,
                     r,
@@ -173,7 +161,7 @@ fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
             b.iter(|| {
                 buf_test(
-                    ptr_bridge_rotate::<usize>,
+                    ptr_bridge_rotate::<[usize; count]>,
                     l.clone(),
                     mid,
                     r,
@@ -184,7 +172,7 @@ fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
         group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
             b.iter(|| {
                 buf_test(
-                    ptr_raft_rotate::<usize>,
+                    ptr_raft_rotate::<[usize; count]>,
                     l.clone(),
                     mid,
                     r,
@@ -300,14 +288,26 @@ fn case_buf(c: &mut Criterion, length: usize, ls: &[usize]) {
 // }
 
 fn bench_buf(c: &mut Criterion) {
-    case_buf(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-    case_buf(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
-    case_buf(c, 100, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 99]);
-    case_buf(c, 1000, &[1, 200, 334, 400, 501, 668, 800, 900, 999]);
-    case_buf(
+    // 1 * usize
+    case_buf::<1>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_buf::<1>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
+    case_buf::<1>(c, 100, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 99]);
+    case_buf::<1>(c, 1000, &[1, 200, 334, 400, 501, 668, 800, 900, 999]);
+    case_buf::<1>(
         c,
         10000,
         &[1, 2000, 3334, 4000, 5001, 6668, 8000, 9000, 9999],
+    );
+
+    // 5 * usize
+    case_buf::<5>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_buf::<5>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
+    case_buf::<5>(c, 100, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 99]);
+    case_buf::<5>(c, 1000, &[1, 200, 334, 400, 501, 668, 800, 900, 999]);
+    case_buf::<5>(
+        c,
+        10000,
+        &[1, 200, 3334, 4000, 5001, 6668, 8000, 9000, 9999],
     );
 }
 
