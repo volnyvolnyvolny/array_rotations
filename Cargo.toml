@@ -1,11 +1,12 @@
 [package]
-name = "rust_rotates"
-version = "0.1.0"
+name = "rust_rotations"
+version = "0.2.0"
 authors = ["Valentin Vasilev <volnyvolnyvolny@ya.ru>"]
 edition = "2021"
 
 [dev-dependencies]
 criterion = {version = "0.4", features = ["html_reports"]}
+regex = {version = "1.8", features = ["unicode-perl"]}
 
 [[bench]]
 name = "rotations"

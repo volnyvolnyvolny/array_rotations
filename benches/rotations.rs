@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use rust_rotates::*;
+use rust_rotations::*;
 // use pprof::criterion::{Output, PProfProfiler};
 
 // use std::time::Duration;
