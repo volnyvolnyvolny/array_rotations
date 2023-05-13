@@ -203,12 +203,23 @@ fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usiz
             b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
         });
         group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
+            b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
         });
         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
             b.iter(|| {
                 buf_test(
                     ptr_bridge_rotate::<[usize; count]>,
+                    l.clone(),
+                    mid,
+                    r,
+                    buffer.as_mut_slice(),
+                )
+            })
+        });
+        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
+            b.iter(|| {
+                buf_test(
+                    ptr_aux_rotate::<[usize; count]>,
                     l.clone(),
                     mid,
                     r,
