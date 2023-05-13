@@ -184,130 +184,117 @@ fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) 
     group.finish();
 }
 
-// fn case_bridge(c: &mut Criterion, length: usize, ls: &[usize]) {
-//     use criterion::black_box;
+fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
+    let mut group = c.benchmark_group(format!("Contrev/{length}/{count}"));
+    //    group.throughput(Throughput::Elements(length as u64));
 
-//     let mut group = c.benchmark_group(format!("Bridge/{length}"));
-//     //    group.throughput(Throughput::Elements(length as u64));
+    let mut buffer = Vec::<[usize; count]>::with_capacity(length);
+    let mut v = seq::<count>(length);
 
-//     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
-//     let mut buffer = Vec::<usize>::with_capacity(length);
-//     let mut v = seq(length);
+    for l in ls {
+        let mid = unsafe {
+            let p = &v[..].as_mut_ptr().add(l.clone());
+            p.clone()
+        };
 
-//     for l in ls {
-//         let mid = unsafe {
-//             let p = &v[..].as_mut_ptr().add(l.clone());
-//             p.clone()
-//         };
+        let r = length - l;
 
-//         let r = length - l;
-
-//         group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-//             b.iter(|| black_box(test(ptr_contrev_rotate::<usize>, l.clone(), mid, r)))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-//             b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_bridge_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//         group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_raft_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//         group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_aux_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//     }
-
-//     group.finish();
-// }
-
-// fn case_gm_helix(c: &mut Criterion, length: usize, ls: &[usize]) {
-//     use criterion::black_box;
-
-//     let mut group = c.benchmark_group(format!("GM/{length}"));
-//     //    group.throughput(Throughput::Elements(length as u64));
-
-//     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
-//     let mut buffer = Vec::<usize>::with_capacity(length);
-//     let mut v = seq(length);
-
-//     for l in ls {
-//         let mid = unsafe {
-//             let p = &v[..].as_mut_ptr().add(l.clone());
-//             p.clone()
-//         };
-
-//         let r = length - l;
-
-//         group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-//             b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, _| {
-//             b.iter(|| test(ptr_helix_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, _| {
-//             b.iter(|| test(ptr_grail_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, _| {
-//             b.iter(|| test(ptr_drill_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("GM_rec", l), l, |b, _| {
-//             b.iter(|| test(ptr_griesmills_rotate_rec::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("GM", l), l, |b, _| {
-//             b.iter(|| test(ptr_griesmills_rotate::<usize>, l.clone(), mid, r))
-//         });
-//     }
-
-//     group.finish();
-// }
+        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
+            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
+            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
+        });
+        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
+            b.iter(|| {
+                buf_test(
+                    ptr_bridge_rotate::<[usize; count]>,
+                    l.clone(),
+                    mid,
+                    r,
+                    buffer.as_mut_slice(),
+                )
+            })
+        });
+    }
+    group.finish();
+}
 
 fn bench_buf(c: &mut Criterion) {
     // 1 * usize
     case_buf::<1>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     case_buf::<1>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
-    case_buf::<1>(c, 100, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 99]);
-    case_buf::<1>(c, 1000, &[1, 200, 334, 400, 501, 668, 800, 900, 999]);
+
+    case_buf::<1>(c, 100, &[1, 20, 32, 35, 40, 45, 51, 60, 66, 69, 80, 90, 99]);
+    case_buf::<1>(
+        c,
+        1000,
+        &[1, 32, 200, 334, 400, 485, 516, 668, 800, 900, 969, 999],
+    );
     case_buf::<1>(
         c,
         10000,
-        &[1, 2000, 3334, 4000, 5001, 6668, 8000, 9000, 9999],
+        &[
+            1, 32, 2000, 3334, 4000, 4985, 5016, 6668, 8000, 9000, 9969, 9999,
+        ],
     );
 
-    // 5 * usize
+    // 5 * usize, possible buffer size = 6 elements of 5 * usize
+    case_buf::<5>(c, 6, &[1, 2, 3, 4, 5]);
+
     case_buf::<5>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-    case_buf::<5>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
-    case_buf::<5>(c, 100, &[1, 20, 34, 40, 51, 60, 68, 80, 90, 99]);
-    case_buf::<5>(c, 1000, &[1, 200, 334, 400, 501, 668, 800, 900, 999]);
+    case_buf::<5>(c, 30, &[1, 3, 6, 10, 13, 16, 18, 22, 25, 27, 29]);
+    case_buf::<5>(c, 100, &[1, 6, 20, 30, 40, 48, 53, 60, 70, 80, 90, 95, 99]);
+    case_buf::<5>(
+        c,
+        1000,
+        &[1, 6, 200, 334, 400, 498, 503, 668, 800, 900, 995, 999],
+    );
     case_buf::<5>(
         c,
         10000,
-        &[1, 200, 3334, 4000, 5001, 6668, 8000, 9000, 9999],
+        &[
+            1, 6, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9995, 9999,
+        ],
+    );
+}
+
+fn bench_contrev(c: &mut Criterion) {
+    // 1 * usize
+    case_contrev::<1>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_contrev::<1>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
+
+    case_contrev::<1>(c, 100, &[1, 20, 32, 35, 40, 45, 51, 60, 66, 69, 80, 90, 99]);
+    case_contrev::<1>(
+        c,
+        1000,
+        &[1, 32, 200, 334, 400, 485, 516, 668, 800, 900, 969, 999],
+    );
+    case_contrev::<1>(
+        c,
+        10000,
+        &[
+            1, 32, 2000, 3334, 4000, 4985, 5016, 6668, 8000, 9000, 9969, 9999,
+        ],
+    );
+
+    // 5 * usize, possible buffer size = 6 elements of 5 * usize
+    case_contrev::<5>(c, 6, &[1, 2, 3, 4, 5]);
+
+    case_contrev::<5>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_contrev::<5>(c, 30, &[1, 3, 6, 10, 13, 16, 18, 22, 25, 27, 29]);
+    case_contrev::<5>(c, 100, &[1, 6, 20, 30, 40, 48, 53, 60, 70, 80, 90, 95, 99]);
+    case_contrev::<5>(
+        c,
+        1000,
+        &[1, 6, 200, 334, 400, 498, 503, 668, 800, 900, 995, 999],
+    );
+    case_contrev::<5>(
+        c,
+        10000,
+        &[
+            1, 6, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9995, 9999,
+        ],
     );
 }
 
@@ -382,8 +369,7 @@ criterion_group! {
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
 
-    // targets = bench_all, bench_bridge
-    targets = bench_buf
+    targets = bench_buf, bench_contrev
 }
 
 criterion_main!(benches);
