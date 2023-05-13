@@ -659,7 +659,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///        left = 9    dim     |        right = 6
 /// [ 1  2  3  4  5  6 :7  8  9*            10-15]                // move
 ///                                          └──┴───────┬─────┐
-/// [              1-6 :7 ... 9  ✘  ✘  ✘  ✘  ✘  ✘]    [10 .. 15]  // move
+/// [              1-6 :7  .  9  ✘  ✘  ✘  ✘  ✘  ✘]    [10 .. 15]  // move
 ///                └────┬─────┴─────────────────┐
 /// [ ✘  ✘  ✘  ✘  ✘  ✘ :1 ~~~~~~~~~~~~~~~~~~~~~ 9]    [10-15   ]  // move
 ///   ┌──────────────┬──────────────────────────────────┴──┘
@@ -704,11 +704,11 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 
     if left < right {
         ptr::copy_nonoverlapping(start, buf, left);
-        copy_forward(mid, start, right);
+        copy_forward(mid, start, right); // ! see 'ptr_naive_aux_rotate'
         ptr::copy_nonoverlapping(buf, dim, left);
     } else if right < left {
         ptr::copy_nonoverlapping(mid, buf, right);
-        copy_backward(start, dim, left);
+        copy_backward(start, dim, left); // !
         ptr::copy_nonoverlapping(buf, start, right);
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
@@ -743,7 +743,7 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 ///        left = 9    dim     |        right = 6
 /// [ 1  2  3  4  5  6 :7  8  9*            10-15]                // move
 ///                                          └──┴───────┬─────┐
-/// [              1-6 :7 ... 9  ✘  ✘  ✘  ✘  ✘  ✘]    [10 .. 15]  // move
+/// [              1-6 :7  .  9  ✘  ✘  ✘  ✘  ✘  ✘]    [10 .. 15]  // move
 ///                └────┬─────┴─────────────────┐
 /// [ ✘  ✘  ✘  ✘  ✘  ✘ :1 ~~~~~~~~~~~~~~~~~~~~~ 9]    [10-15   ]  // move
 ///   ┌──────────────┬──────────────────────────────────┴──┘

@@ -13,10 +13,10 @@ fn seq(size: usize) -> Vec<usize> {
     v
 }
 
-fn test(
-    rotate: unsafe fn(left: usize, mid: *mut usize, right: usize),
+fn test<T>(
+    rotate: unsafe fn(left: usize, mid: *mut T, right: usize),
     left: usize,
-    p: *mut usize,
+    p: *mut T,
     right: usize,
 ) {
     //    if left <= right {
@@ -28,12 +28,12 @@ fn test(
     // }
 }
 
-fn buf_test(
-    rotate: unsafe fn(left: usize, mid: *mut usize, right: usize, buffer: &mut [usize]),
+fn buf_test<T>(
+    rotate: unsafe fn(left: usize, mid: *mut T, right: usize, buffer: &mut [T]),
     left: usize,
-    p: *mut usize,
+    p: *mut T,
     right: usize,
-    buffer: &mut [usize],
+    buffer: &mut [T],
 ) {
     //    if left <= right {
     unsafe { rotate(left, p, right, buffer) }
