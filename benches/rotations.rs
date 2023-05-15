@@ -289,6 +289,25 @@ fn bench_contrev(c: &mut Criterion) {
         ],
     );
 
+    // 2 * usize, possible buffer size = 16 elements of 2 * usize
+    case_contrev::<2>(c, 6, &[1, 2, 3, 4, 5]);
+
+    case_contrev::<2>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_contrev::<2>(c, 30, &[1, 3, 6, 10, 13, 16, 18, 22, 25, 27, 29]);
+    case_contrev::<2>(c, 100, &[1, 16, 20, 30, 40, 48, 53, 60, 70, 80, 85, 99]);
+    case_contrev::<2>(
+        c,
+        1000,
+        &[1, 16, 200, 334, 400, 498, 503, 668, 800, 900, 985, 999],
+    );
+    case_contrev::<2>(
+        c,
+        10000,
+        &[
+            1, 16, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9985, 9999,
+        ],
+    );
+
     // 5 * usize, possible buffer size = 6 elements of 5 * usize
     case_contrev::<5>(c, 6, &[1, 2, 3, 4, 5]);
 
