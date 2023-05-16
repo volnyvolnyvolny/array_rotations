@@ -25,7 +25,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use crate::swap_backward;
 use crate::swap_forward;
-use std::cmp;
 use std::ptr;
 
 /// # Gries-Mills rotation (recursive variant)
@@ -63,33 +62,30 @@ use std::ptr;
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap r-side and its shadow
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3 10  .  .  .  . 15  4 ~~~~~~~~~~~~ 9]
+/// [ 1  .  3 10  -  -  -  - 15  4 ~~~~~~~~~~~~ 9]
 ///
 ///    l = 3     𝑠ℎ. r = 6
-/// [ 1  .  3,10  . 12:13  . 15] 4  .  .  .  .  9   // swap new l-side and its shadow
+/// [ 1  .  3,10  - 12 13  - 15] 4  .  .  .  .  9   // swap new l-side and its shadow
 ///   └─────┴/\┴─────┘
 ///   ┌─────┬~/┬─────┐
-/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9
+/// [10 ~~ 12  1  -  3 13  - 15] 4  .  .  .  .  9
 ///
 ///             l = 3   r = 3
-///  10 ~~ 12[ 1  .  3;13  . 15] 4  .  .  .  .  9   // swap equal
+///  10 ~~ 12[ 1  -  3;13  - 15] 4  .  .  .  .  9   // swap equal
 ///            └─────┴/\┴─────┘
 ///            ┌─────┬~~┬─────┐
 ///  10 ~~ 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
 ///
-/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
+/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if (right == 0) || (left == 0) {
         return;
     }
 
     if left < right {
-        ptr::swap_nonoverlapping(mid.sub(left), mid, left);
+        let start = mid.sub(left);
+        ptr::swap_nonoverlapping(start, mid, left);
         ptr_griesmills_rotate_rec(left, mid.add(left), right - left);
     } else {
         ptr::swap_nonoverlapping(mid, mid.sub(right), right);
@@ -120,6 +116,9 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 /// "In some cases this rotation outperforms the classic *Triple reversal rotation*
 /// while making fewer moves." <<https://github.com/scandum/rotate>>
 ///
+/// When the smallest side reaches a size of `1` element -- it is the worst case for the
+/// *Gries-Mills rotation*.
+///
 /// ## Safety
 ///
 /// The specified range must be valid for reading and writing.
@@ -132,40 +131,37 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap r-side and its shadow
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3 10  .  .  .  . 15  4 ~~~~~~~~~~~~ 9]
+/// [ 1  .  3 10  -  -  -  - 15  4 ~~~~~~~~~~~~ 9]
 ///
 ///    l = 3     𝑠ℎ. r = 6
-/// [ 1  .  3,10  . 12:13  . 15] 4  .  .  .  .  9   // swap new l-side and itsshadow
+/// [ 1  .  3,10  - 12 13  - 15] 4  .  .  .  .  9   // swap new l-side and its shadow
 ///   └─────┴/\┴─────┘
 ///   ┌─────┬~/┬─────┐
-/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9
+/// [10 ~~ 12  1  -  3 13  - 15] 4  .  .  .  .  9
 ///
 ///             l = 3   r = 3
-///  10 ~~ 12[ 1  .  3;13  . 15] 4  .  .  .  .  9   // swap equal
+///  10  . 12[ 1  -  3;13  - 15] 4  .  .  .  .  9   // swap equal
 ///            └─────┴/\┴─────┘
 ///            ┌─────┬~~┬─────┐
-///  10 ~~ 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
+///  10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
 ///
-/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
+/// [10 ~~~~~~~~~~~ 15: 1  .  3* 4  .  .  .  .  9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     loop {
         if (right == 0) || (left == 0) {
             return;
         }
 
         if left < right {
-            ptr::swap_nonoverlapping(mid.sub(left), mid, left);
-            right = right - left;
+            let start = mid.sub(left);
+            ptr::swap_nonoverlapping(start, mid, left);
             mid = mid.add(left);
+            right -= left;
         } else {
             ptr::swap_nonoverlapping(mid, mid.sub(right), right);
-            left = left - right;
             mid = mid.sub(right);
+            left -= right;
         }
     }
 }
@@ -198,52 +194,35 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  . 12 13  . 15] 4 ~~~~~~~~~~~~ 9   // swap <--
+/// [ 1  .  3;10  - 12 13  - 15] 4 ~~~~~~~~~~~~ 9   // swap <--
 ///   └─────┴/\┴─────┘
 ///   ┌─────┬~/┬─────┐
-/// [10 ~~ 12  1  .  3 13  . 15] 4  .  .  .  .  9   // swap -->
+/// [10 ~~ 12  1  -  3 13  - 15] 4  .  .  .  .  9   // swap -->
 ///            └─────┴/\┴─────┘
 ///            ┌─────┬~~┬─────┐
 ///  10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
 ///
 /// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
 /// ```
-pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
-    let mut min = cmp::min(left, right);
-    let mut start = mid.sub(left);
+pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+    loop {
+        if (right == 0) || (left == 0) {
+            return;
+        }
 
-    while min > 0 {
         if left <= right {
-            loop {
-                swap_forward(start, start.add(left), left);
+            let start = mid.sub(left);
+            swap_forward(start, mid, left); // !
 
-                start = start.add(left);
-                right -= left;
-
-                if left > right {
-                    break;
-                }
-            }
-
-            min = right;
+            mid = mid.add(left);
+            right -= left;
         } else {
-            loop {
-                swap_backward(start.add(left - right), start.add(left), right);
+            swap_backward(mid.sub(right), mid, right); // !
 
-                left -= right;
-
-                if right > left {
-                    break;
-                }
-            }
-
-            min = left;
+            mid = mid.sub(right);
+            left -= right;
         }
     }
-
-    // if min > 0 { // min = 0, 1
-    //     ptr_aux_rotate(left, start.add(left), right);
-    // }
 }
 
 /// # Drill rotation
@@ -274,7 +253,7 @@ pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  .  .  .  . 15] 4 ~~~~~~~~~~~~ 9   // swap -->
+/// [ 1  .  3;10  -  -  -  - 15] 4 ~~~~~~~~~~~~ 9   // swap -->
 ///   └─────┴/\┴─────────────┘
 ///    ┌─────────────┬~~┬─────┐
 /// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3* 4  .  .  .  .  9]
@@ -292,14 +271,9 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
             s = old_r - right;
 
-            //            swap_forward(start, mid, s);
-
-            for _ in 0..s {
-                mid.swap(start);
-
-                mid = mid.add(1);
-                start = start.add(1);
-            }
+            swap_forward(start, mid, s);
+            mid = mid.add(s);
+            start = start.add(s);
         }
 
         // <--
@@ -311,19 +285,11 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         left %= right;
 
         s = old_l - left;
-        // swap_backward(end, mid, s);
 
-        for _ in 0..s {
-            mid = mid.sub(1);
-            end = end.sub(1);
-
-            mid.swap(end);
-        }
+        swap_backward(mid.sub(s), end.sub(s), s);
+        mid = mid.sub(s);
+        end = end.sub(s);
     }
-
-    // if left > 0 && right > 0 {
-    //     ptr_aux_rotate(left, mid, right);
-    // }
 }
 
 #[cfg(test)]
@@ -377,7 +343,7 @@ mod tests {
         assert_eq!(vec, s);
     }
 
-    fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
+    fn test_correct(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
         // --empty--
         case(rotate_f, 0, 0);
 
@@ -407,22 +373,22 @@ mod tests {
     }
 
     #[test]
-    fn ptr_griesmills_rotate_rec_correctness() {
-        test_correctness(ptr_griesmills_rotate_rec::<usize>);
+    fn ptr_griesmills_rotate_rec_correct() {
+        test_correct(ptr_griesmills_rotate_rec::<usize>);
     }
 
     #[test]
-    fn ptr_griesmills_rotate_correctness() {
-        test_correctness(ptr_griesmills_rotate::<usize>);
+    fn ptr_griesmills_rotate_correct() {
+        test_correct(ptr_griesmills_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_grail_rotate_correctness() {
-        test_correctness(ptr_grail_rotate::<usize>);
+    fn ptr_grail_rotate_correct() {
+        test_correct(ptr_grail_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_drill_rotate_correctness() {
-        test_correctness(ptr_drill_rotate::<usize>);
+    fn ptr_drill_rotate_correct() {
+        test_correct(ptr_drill_rotate::<usize>);
     }
 }

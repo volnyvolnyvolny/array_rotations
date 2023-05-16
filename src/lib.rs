@@ -270,10 +270,10 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap
 ///            └──────────────┴/\┴──────────────┘
 ///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3 10  . 12 13  . 15  4 ~~~~~~~~~~~~ 9]  // swap
+/// [ 1  .  3 10  - 12 13  - 15  4 ~~~~~~~~~~~~ 9]  // swap
 ///   └─────┴─────/\────┴─────┘
 ///   ┌─────┬─────\~────┬─────┐
-/// [13  . 15;10  . 12] 1 ~~~ 3  4  .  .  .  .  9   // swap
+/// [13  - 15;10  - 12] 1 ~~~ 3  4  .  .  .  .  9   // swap
 ///   └─────┴/\┴─────┘
 ///   ┌─────┬~~┬─────┐
 /// [10 ~~ 12 13 ~~ 15] 1 ~~~~~~~~~~~~~~~~~~~~~ 9
@@ -287,10 +287,10 @@ pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1  2  3  4  5  6  7: 8* 9 10 11 12 13 14 15]  // swap
 ///      └─────────────────┴/\┴─────────────────┘
 ///      ┌─────────────────┬\~┬─────────────────┐
-/// [ 1  9  .  .  .  .  . 15  2 ~~~~~~~~~~~~~~~ 8]  // swap
+/// [ 1  9  -  -  -  -  - 15  2 ~~~~~~~~~~~~~~~ 8]  // swap
 ///   └────────/\──────────┘
 ///   ┌────────\~──────────┐
-/// [15; 9  .  .  .  . 14] 1 ~~~~~~~~~~~~~~~~~~ 8]  // aux rotate
+/// [15; 9  -  -  -  - 14] 1 ~~~~~~~~~~~~~~~~~~ 8]  // AUX or any other rotation
 ///
 /// [ 9 ~~~~~~~~~~~~~~ 15: 1* 2  .  .  .  .  .  8]
 /// ```
@@ -976,7 +976,7 @@ mod tests {
         assert_eq!(vec, s);
     }
 
-    fn test_correctness(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
+    fn test_correct(rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize)) {
         // --empty--
         case(rotate_f, 0, 0);
 
@@ -1007,37 +1007,37 @@ mod tests {
 
     #[test]
     // default (stable) rust rotate
-    fn ptr_rotate_correctness() {
-        test_correctness(stable_ptr_rotate::<usize>);
+    fn ptr_rotate_correct() {
+        test_correct(stable_ptr_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_reversal_rotate_correctness() {
-        test_correctness(ptr_reversal_rotate::<usize>);
+    fn ptr_reversal_rotate_correct() {
+        test_correct(ptr_reversal_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_piston_rotate_rec_correctness() {
-        test_correctness(ptr_piston_rotate_rec::<usize>);
+    fn ptr_piston_rotate_rec_correct() {
+        test_correct(ptr_piston_rotate_rec::<usize>);
     }
 
     #[test]
-    fn ptr_piston_rotate_correctness() {
-        test_correctness(ptr_piston_rotate::<usize>);
+    fn ptr_piston_rotate_correct() {
+        test_correct(ptr_piston_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_contrev_rotate_correctness() {
-        test_correctness(ptr_contrev_rotate::<usize>);
+    fn ptr_contrev_rotate_correct() {
+        test_correct(ptr_contrev_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_direct_rotate_correctness() {
-        test_correctness(ptr_direct_rotate::<usize>);
+    fn ptr_direct_rotate_correct() {
+        test_correct(ptr_direct_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_helix_rotate_correctness() {
-        test_correctness(ptr_helix_rotate::<usize>);
+    fn ptr_helix_rotate_correct() {
+        test_correct(ptr_helix_rotate::<usize>);
     }
 }

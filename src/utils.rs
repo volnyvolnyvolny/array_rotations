@@ -290,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    fn copy_backward_correctness() {
+    fn copy_backward_correct() {
         let (v, (src, dst)) = prepare_copy(15, 4, 7);
 
         unsafe { copy_backward(src, dst, 7) };
@@ -307,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn copy_forward_correctness() {
+    fn copy_forward_correct() {
         let (v, (src, dst)) = prepare_copy(15, 4, 7);
 
         unsafe { copy_forward(src, dst, 7) };
@@ -326,7 +326,7 @@ mod tests {
     // Swaps:
 
     #[test]
-    fn swap_forward_correctness() {
+    fn swap_forward_correct() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
         unsafe { swap_forward(x, y, 7) };
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn swap_backward_correctness() {
+    fn swap_backward_correct() {
         let (v, (x, y)) = prepare_swap(15, 4, 7);
 
         unsafe { swap_backward(x, y, 7) };

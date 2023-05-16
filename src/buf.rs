@@ -658,7 +658,7 @@ mod tests {
         assert_eq!(vec, s);
     }
 
-    fn test_correctness(
+    fn test_correct(
         rotate_f: unsafe fn(left: usize, mid: *mut usize, right: usize, buffer: &mut [usize]),
     ) {
         let mut buffer = Vec::<usize>::with_capacity(100_000);
@@ -692,27 +692,27 @@ mod tests {
     }
 
     #[test]
-    fn ptr_aux_rotate_correctness() {
-        test_correctness(ptr_aux_rotate::<usize>);
+    fn ptr_aux_rotate_correct() {
+        test_correct(ptr_aux_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_naive_aux_rotate_correctness() {
-        test_correctness(ptr_naive_aux_rotate::<usize>);
+    fn ptr_naive_aux_rotate_correct() {
+        test_correct(ptr_naive_aux_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_bridge_rotate_correctness() {
-        test_correctness(ptr_bridge_rotate::<usize>);
+    fn ptr_bridge_rotate_correct() {
+        test_correct(ptr_bridge_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_raft_rotate_correctness() {
-        test_correctness(ptr_raft_rotate::<usize>);
+    fn ptr_raft_rotate_correct() {
+        test_correct(ptr_raft_rotate::<usize>);
     }
 
     #[test]
-    fn ptr_trinity_rotate_correctness() {
-        test_correctness(ptr_trinity_rotate::<usize>);
+    fn ptr_trinity_rotate_correct() {
+        test_correct(ptr_trinity_rotate::<usize>);
     }
 }
