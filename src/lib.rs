@@ -656,9 +656,9 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// ## Algorithm
 ///
-/// *Algorithm 1* is used for small values of `left + right` or for large `T`. The elements are moved
-/// into their final positions one at a time starting at `mid - left` and advancing by `right` steps
-/// modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
+/// *Algorithm 1* (*Direct*) is used for small values of `left + right` or for large `T`. The elements
+/// are moved into their final positions one at a time starting at `mid - left` and advancing by `right`
+/// steps modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
 /// `mid - left`. However, if `gcd(left + right, right)` is not 1, the above steps skipped over
 /// elements. For example:
 ///
@@ -705,7 +705,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// `gcd(left + right, right)` value). The end result is that all elements are finalized once and
 /// only once.
 ///
-/// *Algorithm 2* is used if `left + right` is large but `min(left, right)` is small enough to
+/// *Algorithm 2* (*AUX*) is used if `left + right` is large but `min(left, right)` is small enough to
 /// fit onto a stack buffer. The `min(left, right)` elements are copied onto the buffer, `memmove`
 /// is applied to the others, and the ones on the buffer are moved back into the hole on the
 /// opposite side of where they originated.
@@ -713,7 +713,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// Algorithms that can be vectorized outperform the above once `left + right` becomes large enough.
 /// *Algorithm 1* can be vectorized by chunking and performing many rounds at once, but there are too
 /// few rounds on average until `left + right` is enormous, and the worst case of a single
-/// round is always there. Instead, *algorithm 3* utilizes repeated swapping of
+/// round is always there. Instead, *algorithm 3* (*GM*) utilizes repeated swapping of
 /// `min(left, right)` elements until a smaller rotate problem is left.
 ///
 /// ```text

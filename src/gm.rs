@@ -47,8 +47,7 @@ use std::ptr;
 ///
 /// ## Performance
 ///
-/// "In some cases this rotation outperforms the classic *Triple reversal rotation*
-/// while making fewer moves." <<https://github.com/scandum/rotate>>
+/// Recursive variant of the *GM* rotation is slightly slower than simple iterative *GM*.
 ///
 /// ## Safety
 ///
@@ -185,6 +184,10 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
 /// ## Safety
 ///
 /// The specified range must be valid for reading and writing.
+///
+/// ## Performance
+///
+/// *GM* outperforms *Grail*.
 ///
 /// ## Examples
 ///
