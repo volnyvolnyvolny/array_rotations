@@ -1,9 +1,10 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Criterion};
 use rust_rotations::*;
 // use pprof::criterion::{Output, PProfProfiler};
 
 // use std::time::Duration;
 // use std::ptr;
+use std::cmp;
 
 fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
     let mut v = vec![[0; count]; size];
@@ -32,94 +33,31 @@ fn buf_test<T>(
     unsafe { rotate(left, p, right, buffer) }
 }
 
-// fn case_all(c: &mut Criterion, length: usize, ls: &[usize]) {
-//     use criterion::black_box;
+enum Rotation {
+    Direct,
+    Aux,
+    NaiveAux,
+    Bridge,
+    Raft,
+    Piston,
+    GM,
+    GMRec,
+    Contrev,
+    Helix,
+    Drill,
+    Grail,
+    Stable,
+    Rev,
+}
 
-//     let mut group = c.benchmark_group(format!("All/{length}"));
-//     //    group.throughput(Throughput::Elements(length as u64));
-
-//     // let mut group = c.benchmark_group(format!("Bridge/{len}").as_str());
-//     let mut buffer = vec![0; length];
-//     let mut v = seq(length);
-
-//     for l in ls {
-//         let mid = unsafe {
-//             let p = &v[..].as_mut_ptr().add(l.clone());
-//             p.clone()
-//         };
-
-//         let r = length - l;
-
-//         group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-//             b.iter(|| black_box(test(ptr_contrev_rotate::<usize>, l.clone(), mid, r)))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-//             b.iter(|| test(ptr_direct_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_bridge_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//         group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_raft_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//         group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-//             b.iter(|| {
-//                 black_box(buf_test(
-//                     ptr_aux_rotate::<usize>,
-//                     l.clone(),
-//                     mid,
-//                     r,
-//                     buffer.as_mut_slice(),
-//                 ))
-//             })
-//         });
-//         group.bench_with_input(BenchmarkId::new("Default", l), l, |b, _| {
-//             b.iter(|| test(stable_ptr_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Piston", l), l, |b, _| {
-//             b.iter(|| test(ptr_piston_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, _| {
-//             b.iter(|| test(ptr_helix_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, _| {
-//             b.iter(|| test(ptr_grail_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, _| {
-//             b.iter(|| test(ptr_drill_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("GM_rec", l), l, |b, _| {
-//             b.iter(|| test(ptr_griesmills_rotate_rec::<usize>, l.clone(), mid, r))
-//         });
-//         group.bench_with_input(BenchmarkId::new("Rev", l), l, |b, _| {
-//             b.iter(|| test(ptr_reversal_rotate::<usize>, l.clone(), mid, r))
-//         });
-//         // group.bench_with_input(BenchmarkId::new("Trinity", l), l, |b, _| {
-//         //     b.iter(|| test(ptr_trinity_rotate::<usize>, l.clone(), mid, r))
-//         // });
-//     }
-
-//     group.finish();
-// }
-
-fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("Buf/{length}/{count}"));
+fn case<const count: usize>(
+    name: &str,
+    c: &mut Criterion,
+    length: usize,
+    ls: &[usize],
+    rotations: Vec<Rotation>,
+) {
+    let mut group = c.benchmark_group(format!("{name}/{length}/{count}"));
     //    group.throughput(Throughput::Elements(length as u64));
 
     let mut buffer = Vec::<[usize; count]>::with_capacity(length);
@@ -133,218 +71,169 @@ fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) 
 
         let r = length - l;
 
-        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Naive aux", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_naive_aux_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_aux_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_bridge_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_raft_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
+        use Rotation::*;
+
+        for rotation in &rotations {
+            match rotation {
+                Direct => {
+                    group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
+                        b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Contrev => {
+                    group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
+                        b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                GM => {
+                    group.bench_with_input(BenchmarkId::new("GM", l), l, |b, _| {
+                        b.iter(|| test(ptr_griesmills_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                GMRec => {
+                    group.bench_with_input(BenchmarkId::new("GM (rec)", l), l, |b, _| {
+                        b.iter(|| {
+                            test(
+                                ptr_griesmills_rotate_rec::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                            )
+                        })
+                    });
+                }
+                Helix => {
+                    group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, _| {
+                        b.iter(|| test(ptr_helix_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Aux => {
+                    group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
+                        b.iter(|| {
+                            buf_test(
+                                ptr_aux_rotate::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                                buffer.as_mut_slice(),
+                            )
+                        })
+                    });
+                }
+                NaiveAux => {
+                    group.bench_with_input(BenchmarkId::new("Aux (naive)", l), l, |b, _| {
+                        b.iter(|| {
+                            buf_test(
+                                ptr_naive_aux_rotate::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                                buffer.as_mut_slice(),
+                            )
+                        })
+                    });
+                }
+                Bridge => {
+                    let bridge = l.abs_diff(r);
+
+                    if cmp::min(l, &r) > &bridge {
+                        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
+                            b.iter(|| {
+                                buf_test(
+                                    ptr_bridge_rotate::<[usize; count]>,
+                                    l.clone(),
+                                    mid,
+                                    r,
+                                    buffer.as_mut_slice(),
+                                )
+                            })
+                        });
+                    };
+                }
+                Raft => {
+                    group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
+                        b.iter(|| {
+                            buf_test(
+                                ptr_raft_rotate::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                                buffer.as_mut_slice(),
+                            )
+                        })
+                    });
+                }
+                Rev => {
+                    group.bench_with_input(BenchmarkId::new("Rev", l), l, |b, _| {
+                        b.iter(|| test(ptr_reversal_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Piston => {
+                    group.bench_with_input(BenchmarkId::new("Piston", l), l, |b, _| {
+                        b.iter(|| test(ptr_piston_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Grail => {
+                    group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, _| {
+                        b.iter(|| test(ptr_grail_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Drill => {
+                    group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, _| {
+                        b.iter(|| test(ptr_drill_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                Stable => {
+                    group.bench_with_input(BenchmarkId::new("Stable", l), l, |b, _| {
+                        b.iter(|| test(stable_ptr_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+            }
+        }
     }
     group.finish();
+}
+
+fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
+    use Rotation::*;
+
+    case::<count>(
+        "Buf",
+        c,
+        length,
+        ls,
+        vec![Direct, NaiveAux, Aux, Bridge, Raft],
+    );
 }
 
 fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("Contrev/{length}/{count}"));
-    //    group.throughput(Throughput::Elements(length as u64));
+    use Rotation::*;
 
-    let mut buffer = Vec::<[usize; count]>::with_capacity(length);
-    let mut v = seq::<count>(length);
-
-    for l in ls {
-        let mid = unsafe {
-            let p = &v[..].as_mut_ptr().add(l.clone());
-            p.clone()
-        };
-
-        let r = length - l;
-
-        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-            b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_bridge_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_aux_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-    }
-    group.finish();
+    case::<count>("Contrev", c, length, ls, vec![Direct, Contrev, Bridge, Aux]);
 }
 
 fn case_gm<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("GM/{length}/{count}"));
-    //    group.throughput(Throughput::Elements(length as u64));
+    use Rotation::*;
 
-    let mut buffer = Vec::<[usize; count]>::with_capacity(length);
-    let mut v = seq::<count>(length);
-
-    for l in ls {
-        let mid = unsafe {
-            let p = &v[..].as_mut_ptr().add(l.clone());
-            p.clone()
-        };
-
-        let r = length - l;
-
-        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("GM", l), l, |b, _| {
-            b.iter(|| test(ptr_griesmills_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("GM (rec)", l), l, |b, _| {
-            b.iter(|| {
-                test(
-                    ptr_griesmills_rotate_rec::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, _| {
-            b.iter(|| test(ptr_grail_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Drill", l), l, |b, _| {
-            b.iter(|| test(ptr_drill_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-
-        // group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-        //     b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
-        // });
-        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_aux_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-    }
-    group.finish();
+    case::<count>(
+        "GM",
+        c,
+        length,
+        ls,
+        vec![Direct, GM, GMRec, Grail, Drill, Aux],
+    );
 }
 
 fn case_main<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
-    let mut group = c.benchmark_group(format!("Main/{length}/{count}"));
-    //    group.throughput(Throughput::Elements(length as u64));
+    use Rotation::*;
 
-    let mut buffer = Vec::<[usize; count]>::with_capacity(length);
-    let mut v = seq::<count>(length);
-
-    for l in ls {
-        let mid = unsafe {
-            let p = &v[..].as_mut_ptr().add(l.clone());
-            p.clone()
-        };
-
-        let r = length - l;
-
-        group.bench_with_input(BenchmarkId::new("Direct", l), l, |b, _| {
-            b.iter(|| test(ptr_direct_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
-            b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("GM", l), l, |b, _| {
-            b.iter(|| test(ptr_griesmills_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Helix", l), l, |b, _| {
-            b.iter(|| test(ptr_helix_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Piston", l), l, |b, _| {
-            b.iter(|| test(ptr_piston_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-        group.bench_with_input(BenchmarkId::new("Rev", l), l, |b, _| {
-            b.iter(|| test(ptr_reversal_rotate::<[usize; count]>, l.clone(), mid, r))
-        });
-
-        group.bench_with_input(BenchmarkId::new("Aux", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_aux_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-        group.bench_with_input(BenchmarkId::new("Bridge", l), l, |b, _| {
-            b.iter(|| {
-                buf_test(
-                    ptr_bridge_rotate::<[usize; count]>,
-                    l.clone(),
-                    mid,
-                    r,
-                    buffer.as_mut_slice(),
-                )
-            })
-        });
-    }
-    group.finish();
+    case::<count>(
+        "Main",
+        c,
+        length,
+        ls,
+        vec![Direct, Contrev, GM, Helix, Piston, Rev, Aux, Bridge],
+    );
 }
 
 fn bench_short(c: &mut Criterion) {
