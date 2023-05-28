@@ -89,9 +89,15 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
         slice.reverse();
     }
 
-    reverse_slice(mid.sub(left), left);
-    reverse_slice(mid, right);
-    reverse_slice(mid.sub(left), left + right);
+    let start = mid.sub(left);
+
+    if left == right {
+        ptr::swap_nonoverlapping(mid, start, left);
+    } else {
+        reverse_slice(start, left);
+        reverse_slice(mid, right);
+        reverse_slice(start, left + right);
+    }
 }
 
 /// # Successive aka Piston rotation (recursive variant)
@@ -152,11 +158,13 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
+    let start = mid.sub(left);
+
     if left < right {
-        ptr::swap_nonoverlapping(mid.sub(left), mid.add(right).sub(left), left);
+        ptr::swap_nonoverlapping(start, start.add(right), left);
         ptr_piston_rotate_rec(left, mid, right - left);
     } else {
-        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+        ptr::swap_nonoverlapping(mid, start, right);
         ptr_piston_rotate_rec(left - right, mid, right);
     }
 }
@@ -421,6 +429,12 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
     // N.B. the below algorithms can fail if these cases are not checked
     if (right == 0) || (left == 0) {
+        return;
+    }
+
+    if left == right {
+        let start = mid.sub(left);
+        ptr::swap_nonoverlapping(start, mid, left);
         return;
     }
 
