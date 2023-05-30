@@ -84,6 +84,10 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
+    if (right == 0) || (left == 0) {
+        return;
+    }
+
     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
         let slice = slice::from_raw_parts_mut(p, size);
         slice.reverse();
