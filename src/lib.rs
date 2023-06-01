@@ -45,6 +45,59 @@ pub use utils::*;
 pub mod gm;
 pub use gm::*;
 
+/// # Edge case (left || right = 1) rotation
+///
+/// Rotates the range `[mid-1, mid+right)` or `[mid-left, mid+1)` such that the element
+/// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
+/// to the left or `right` elements to the right.
+///
+/// This case is optimized for the case when `left = 1 or right = 1`.
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
+    let start = mid.sub(left);
+
+    if left == 1 {
+        if right == 1 {
+            ptr::swap(start, mid);
+        } else {
+            let tmp = start.read();
+            copy_forward(mid, start, right);
+            mid.add(right - 1).write(tmp);
+        }
+
+        return;
+    } else if right == 1 {
+        let tmp = mid.read();
+        copy_backward(start, start.add(1), left);
+        start.write(tmp);
+
+        return;
+    }
+
+    ptr_direct_rotate::<T>(left, mid, right); // fallback
+}
+
+// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
+//     print!("{} [", label);
+
+//     for i in 0..size {
+//         if i == size - 1 {
+//             print!("{:?}", p.read());
+//         } else {
+//             print!("{:?} ", p.read());
+//             p = p.add(1);
+//         }
+//     }
+
+//     println!("]");
+// }
+
 // /// # Edge case (left || right = 1) rotation
 // ///
 // /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
@@ -59,9 +112,30 @@ pub use gm::*;
 // ///
 // /// ## Example
 // ///
-// pub unsafe fn ptr_rotate_one<T>(left: usize, mid: *mut T, right: usize) {
-//     ptr_
-    
+// pub unsafe fn ptr_rotate_edge<T>(left: usize, mid: *mut T, right: usize) {
+//     let size = left + right;
+//     let r = size_of::<T>() / size_of::<usize>();
+
+//     if r <= 1 {
+//         if size <= 10 {
+//             ptr_direct_rotate<T>(left, mid, right);
+//         } else if size <= 1000 {
+//             ptr_reversal_rotate<T>(left, mid, right);
+//         } else {
+//             ptr_aux_rotate<T>(left, mid, right);
+//         }
+//     }
+
+//     if (size <= 10) && r <= 1 {
+//         ptr_direct_rotate<T>(left, mid, right);
+//     } else if size <= 30 {
+//         if r <= 2 {
+
+//         } else
+
+//         ptr
+//     }
+
 //     if (right == 0) || (left == 0) {
 //         return;
 //     }
@@ -1131,6 +1205,9 @@ mod tests {
         // --empty--
         case(rotate_f, 0, 0);
 
+        // --empty--
+        case(rotate_f, 2, 0);
+
         // 1  2  3  4  5  6 (7  8  9)10 11 12 13 14 15
         case(rotate_f, 15, 3);
 
@@ -1166,6 +1243,11 @@ mod tests {
     // fn ptr_harmony_rotate_correct() {
     //     test_correct(ptr_harmony_rotate::<usize>);
     // }
+
+    #[test]
+    fn ptr_edge_rotate_correct() {
+        test_correct(ptr_edge_rotate::<usize>);
+    }
 
     #[test]
     fn ptr_reversal_rotate_correct() {

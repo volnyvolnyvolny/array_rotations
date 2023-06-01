@@ -46,6 +46,7 @@ enum Rotation {
     Helix,
     Drill,
     Grail,
+    Edge,
     Stable,
     Rev,
 }
@@ -183,6 +184,11 @@ fn case<const count: usize>(
                         b.iter(|| test(ptr_drill_rotate::<[usize; count]>, l.clone(), mid, r))
                     });
                 }
+                Edge => {
+                    group.bench_with_input(BenchmarkId::new("Edge", l), l, |b, _| {
+                        b.iter(|| test(ptr_edge_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
                 Stable => {
                     group.bench_with_input(BenchmarkId::new("Stable", l), l, |b, _| {
                         b.iter(|| test(stable_ptr_rotate::<[usize; count]>, l.clone(), mid, r))
@@ -250,7 +256,7 @@ fn case_ends<const count: usize>(c: &mut Criterion, length: usize) {
         c,
         length,
         &[1, length - 1],
-        vec![Direct, Rev, Contrev, Aux],
+        vec![Direct, Rev, Contrev, Aux, Edge],
     );
 }
 
