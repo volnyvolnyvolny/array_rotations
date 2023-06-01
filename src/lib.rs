@@ -45,6 +45,43 @@ pub use utils::*;
 pub mod gm;
 pub use gm::*;
 
+// /// # Edge case (left || right = 1) rotation
+// ///
+// /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+// /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+// /// right.
+// ///
+// /// In this case `left = 1 or right = 1`, `left != right`.
+// ///
+// /// ## Safety
+// ///
+// /// The specified range must be valid for reading and writing.
+// ///
+// /// ## Example
+// ///
+// pub unsafe fn ptr_rotate_one<T>(left: usize, mid: *mut T, right: usize) {
+//     ptr_
+    
+//     if (right == 0) || (left == 0) {
+//         return;
+//     }
+
+//     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
+//         let slice = slice::from_raw_parts_mut(p, size);
+//         slice.reverse();
+//     }
+
+//     let start = mid.sub(left);
+
+//     if left == right {
+//         ptr::swap_nonoverlapping(mid, start, left);
+//     } else {
+//         reverse_slice(start, left);
+//         reverse_slice(mid, right);
+//         reverse_slice(start, left + right);
+//     }
+// }
+
 /// # Triple reversal rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
@@ -527,27 +564,27 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```text
 ///                            mid
 ///   ls-->               <--le|rs-->       <--re
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // (ls -> le -> re -> rs -> ls)
-///   ╰───────────╮           ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈╮|
-///   ╭┈┈┈┈┈┈┈┈┈┈ ╰───────────╮┈┈╯╭────────── ┆╯
-///   ↓  ls               le  |   |rs       re┆
-/// [10  2  .  .  .  .  .  8  1 15╯11 ..... 14╰>9]  // (ls, le, re, rs)
-///      ╰────────╮        ╰┈┈┈┈┈╭┈┈╯ ┈┈┈┈┈╮|
-///      ╭┈┈┈┈┈┈┈ ╰────────╮┈┈┈┈┈╯  ╭───── ┆╯
-///      ↓  ls         le  |        | rs re┆
-/// [10 11  3  .  .  .  7  2  1 15 14 12 13╰>8  9]
-///         ╰─────╮     ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ╮|
-///         ╭┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭|╯
-///         ↓  ls   le  |             re┆
-/// [10  . 12  4  .  6  3  2  1 15 14 13╰>7  .  9]  // (ls, le, re)
+/// [ 1  2  3  4  5  6: 7  8  9* a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
+///   ╰───────────╮           ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈╮ |
+///   ╭┈┈┈┈┈┈┈┈┈┈ ╰───────────╮┈┈╯╭────────── ┆─╯
+///   ↓  sl               le  |   | sr      re┆
+/// [ a  2  .  .  .  .  .  8  1  f╯ b  .  .  e╰>9]  // (ls, le, re, rs)
+///      ╰────────╮        ╰┈┈┈┈┈╭┈┈╯ ┈┈┈┈┈╮ |
+///      ╭┈┈┈┈┈┈┈ ╰────────╮┈┈┈┈┈╯  ╭───── ┆─╯
+///      ↓  s           e  |        |  s  e┆
+/// [ a  b  3  .  .  .  7  2  1  f  e  c  d╰>8  9]
+///         ╰─────╮     ╰┈┈┈┈┈┈┈┈┈┈┈┈┈╭╯  |
+///         ╭┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭|─╯
+///         ↓  s     e  |              e┆
+/// [ a ~~~ c  4  .  6  3  2  1  f  e  d╰>7 ~~~ 9]  // (ls, le, re    )
 ///            ╰──╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭┈┈╯
 ///            ╭┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯┆
-///            ↓  ls |             re┆
-/// [10 ~~~~~ 13  5  4  3  2  1 15 14╰>6 ~~~~~~ 9]  // (ls, re)
+///            ↓  sl-|>         <--re┆
+/// [ a ~~~~~~ d  5  4  3  2  1  f  e╰>6 ~~~~~~ 9]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
+///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [10  .  .  . 14 15: 1  2  3* 4  5  .  .  .  9]
+/// [ a ~~~~~~~~~ e  f: 1  2  3* 4  5 ~~~~~~~~~ 9]
 /// ```
 ///
 /// Case: `left < right`, `6 - 9`.
@@ -555,54 +592,55 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// ```text
 ///                   mid
 ///   ls-->      <--le|rs-->                <--re
-/// [ 1  2  3  4  5  6* 7  8  9:10 11 12 13 14 15]  // (re -> rs -> ls -> le -> re)
+/// [ a  b  c  d  e  f* 1  2  3: 4  5  6  7  8  9]  // (ls -> le -> re -> rs -> ls)
 ///   | ╭┈┈┈┈┈┈┈┈┈┈┈ ┆┈┈╯           ╭───────────╯
 ///   ╰─┆ ──────────╮╰┈┈╭───────────╯ ┈┈┈┈┈┈┈┈┈┈╮
-///     ┆ls      le |   | rs                re  ↓
-/// [ 7<╯2  .  .  5 ╰1 15  8  .  .  .  .  . 14  6]  // (re, rs, ls, le)
+///     ┆sl      le |   |  sr               re  ↓
+/// [ 1<╯b  .  .  e ╰a  9  2  .  .  .  .  .  8  f]  // (ls, le, re, rs)
 ///      | ╭┈┈┈┈┈ ┆┈┈┈┈┈┈┈┈╯        ╭────────╯
 ///      ╰─┆ ───╮ ╰┈┈┈┈┈┈┈┈╭────────╯ ┈┈┈┈┈┈┈╮
-///        ┆lsle|          | rs          re  ↓
-/// [ 7  8<╯3  4╰~2  1 15 14  9  .  .  . 13  5  6]
-///         |╭ ┆┈┈┈┈┈┈┈┈┈┈┈╯        ╭─────╯
+///        ┆s  e|          |  s           e  ↓
+/// [ 1  2<╯c  d╰~b  a  9  8  3  .  .  .  7  e  f]
+///         |╭ ┆┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯     ╭─────╯
 ///         ╰┆╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭─────╯ ┈┈┈┈╮
-///          ┆┆ls             | rs    re  ↓
-/// [ 7  .  9╯╰3  2  1 15 14 13 10 11 12  4  .  6]  // (re, rs, ls)
+///          ┆┆s              |  s     e  ↓
+/// [ 1 ~~~ 3╯╰c  b  a  9  8  7  4  5  6  d ~~~ f]  // (ls,     re, rs)
 ///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
 ///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ ls             | re  ↓
-/// [ 7 ~~~~~ 10╯ 2  1 15 14 13 12 11  3 ~~~~~~ 6]  // (re, ls)
+///             ┆ sl-->         <|-re  ↓
+/// [ 1 ~~~~~~ 4╯ b  a  9  8  7  6  5  c ~~~~~~ f]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
+///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [ 7  .  .  . 11 12*13 14 15: 1  2  .  .  .  6]
+/// [ 1 ~~~~~~~~~ 5  6  7  8  9: a  b ~~~~~~~~~ f]
 /// ```
 ///
 /// Case: `left > right`, `8 - 7`.
 ///
 /// ```text
-///   ls-->            <--le rs-->          <--re
-/// [ 1  2  3  4  5  6  7: 8* 9 10 11 12 13 14 15]  // (ls -> le -> re -> rs -> ls)
-///   ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮|
-///   ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭───────────── ┆╯
-///   ↓  ls             le |   |rs          re┆
-/// [ 9  2  .  .  .  .  7  1 15╯10 11 12 13 14╰>8]  // (ls, le, re, rs)
-///      ╰────────╮     ╰┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈┈╮|
-///      ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈╯ ╭─────── ┆╯
-///      ↓  ls      le  |         |rs    re┆
-/// [ 9 10  3  .  .  6  2  1 15 14╯11 12 13╰>7  8]  // (ls, le, re, rs)
-///         ╰─────╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ┈┈╮|
-///         ╭┈┈┈┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭─ ┆╯
-///         ↓  lsle  |               |rs┆
-/// [ 9  . 11  4  5╮ 3  2  1 15 14 13╯12╰>6  .  8]  // (ls, le, rs)
-///            ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮|
-///            ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆╯
-///            ↓  ls               re┆
-/// [ 9 ~~~~~ 12  4  3  2  1 15 14 13╰>5 ~~~~~~ 8]  // (ls, re)
+///                         mid
+///   ls-->            <--le|rs-->          <--re
+/// [ 1  2  3  4  5  6  7: 8* a  b  c  d  e  f  g]  // (ls -> le -> re -> rs -> ls)
+///   ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+///   ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭──────────────┆─╯
+///   ↓  sl            le  |   | sr         re┆
+/// [ a  2  .  .  .  .  7  1  g╯ b  .  .  .  f╰>8]  // (ls, le, re, rs)
+///      ╰────────╮     ╰┈┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈╮ |
+///      ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈╯╭─────── ┆─╯
+///      ↓  s        e  |         | s     e┆
+/// [ a  b  3  .  .  6  2  1  g  f╯ c  .  e╰>7  8]  // (ls, le, re, rs)
+///         ╰─────╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ┈┈╮ |
+///         ╭┈┈┈┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭─ ┆─╯
+///         ↓  s  e  |               | e┆
+/// [ a ~~~ c  4  5╮ 3  2  1  g  f  e╯ d╰>6 ~~~ 8]  // (ls, le,     rs)
+///            ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+///            ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆─╯
+///            ↓  sl-->         <--re┆
+/// [ a ~~~~~~ d  4  3  2  1  g  f  e╰>5 ~~~~~~ 8]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
-///               ╭┈┈╭┈┈╭┈╰┆┈┈╮┈┈╮┈┈╮
+///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
-/// [ 9  .  .  . 13 14 15: 1* 2  3  4  .  .  .  8]
+/// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
@@ -661,6 +699,101 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         center.reverse();
     }
 }
+
+// /// # Harmony rotation
+// ///
+// /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+// /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+// /// right.
+// ///
+// /// ## Safety
+// ///
+// /// The specified range must be valid for reading and writing.
+// ///
+// /// ## Algorithm
+// ///
+// /// `size_of(T) <= 1 * usize' case:
+// ///
+// /// Depending of the size:
+// ///
+// /// * For the array with `<= 14` elements (`size_of(T) <= 1 * usize') we use *direct rotation*;
+// ///
+// /// * `> 14` elements:
+// /// ** `left < right` the *reversal rotation is used*;
+// /// ** otherwise, *direct rotation*.
+// ///
+// /// * `> 20` elements we use *reversal rotation*.
+// ///
+// /// *Algorithm 1* (*Direct*) is used for small values of `left + right` or for large `T`. The elements
+// /// are moved into their final positions one at a time starting at `mid - left` and advancing by `right`
+// /// steps modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
+// /// `mid - left`. However, if `gcd(left + right, right)` is not 1, the above steps skipped over
+// /// elements. For example:
+// ///
+// /// *Algorithm 2* (*AUX*) is used if `left + right` is large but `min(left, right)` is small enough to
+// /// fit onto a stack buffer. The `min(left, right)` elements are copied onto the buffer, `memmove`
+// /// is applied to the others, and the ones on the buffer are moved back into the hole on the
+// /// opposite side of where they originated.
+// ///
+// /// Algorithms that can be vectorized outperform the above once `left + right` becomes large enough.
+// /// *Algorithm 1* can be vectorized by chunking and performing many rounds at once, but there are too
+// /// few rounds on average until `left + right` is enormous, and the worst case of a single
+// /// round is always there. Instead, *algorithm 3* (*GM*) utilizes repeated swapping of
+// /// `min(left, right)` elements until a smaller rotate problem is left.
+// ///
+// /// ```text
+// ///                                   mid
+// ///              left = 11            | right = 4
+// /// [ 5  6  7  8: 9 10 11 12 13 14 15 "1  2  3  4]   swap
+// ///                        └────────┴/\┴────────┘
+// ///                        ┌────────┬~~┬────────┐
+// /// [ 5  .  .  .  .  . 11  1 ~~~~~~ 4 12 13 14 15]
+// ///
+// /// [ 5  .  7  1  2  3  4  8  9 10 11 12 ~~~~~ 15    swap
+// ///            └────────┴/\┴────────┘
+// ///            ┌────────┬~~┬────────┐
+// /// [ 5  .  7  8: 9  . 11: 1 ~~~~~~ 4"12  .  . 15
+// /// we cannot swap any more, but a smaller rotation problem is left to solve
+// /// ```
+// ///
+// /// when `left < right` the swapping happens from the left instead.
+// pub unsafe fn ptr_harmony_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+//     type BufType = [usize; 32];
+
+//     // if T::IS_ZST {
+//     // return;
+//     // }
+
+//     let t_size = std::mem::size_of::<T>();
+
+//     loop {
+//         if (right == 0) || (left == 0) {
+//             return;
+//         }
+
+//         if left == right {
+//             let start = mid.sub(left);
+//             ptr::swap_nonoverlapping(start, mid, left);
+//         }
+
+//         let size = left + right;
+
+//         if t_size <= std::mem::size_of::<usize>() {
+//             if size <= 14 {
+//                 ptr_direct_rotate(left, mid, right);
+//             } else if size <= 24 {
+//                 if left < right {
+//                     ptr_reversal_rotate(left, mid, right);
+//                 } else {
+//                     ptr_direct_rotate(left, mid, right);
+//                 }
+//             } else if size < 40 {
+//                 ptr_reversal_rotate(left, mid, right);
+//             }
+//         } else {
+//         }
+//     }
+// }
 
 /// # Default (Stable) rotation
 ///
@@ -1028,6 +1161,11 @@ mod tests {
     fn ptr_rotate_correct() {
         test_correct(stable_ptr_rotate::<usize>);
     }
+
+    // #[test]
+    // fn ptr_harmony_rotate_correct() {
+    //     test_correct(ptr_harmony_rotate::<usize>);
+    // }
 
     #[test]
     fn ptr_reversal_rotate_correct() {
