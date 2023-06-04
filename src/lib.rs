@@ -28,6 +28,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use std::mem::MaybeUninit;
 //use std::mem::SizedTypeProperties;
+use std::mem::size_of;
 
 use std::cmp;
 
@@ -59,21 +60,26 @@ pub use gm::*;
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let start = mid.sub(left);
 
-    if left == 1 {
-        if right == 1 {
-            ptr::swap(start, mid);
-        } else {
-            let tmp = start.read();
-            copy_forward(mid, start, right);
-            mid.add(right - 1).write(tmp);
-        }
-
-        return;
-    } else if right == 1 {
-        let tmp = mid.read();
-        copy_backward(start, start.add(1), left);
-        start.write(tmp);
-
+    if size_of::<T>() < 18 * size_of::<usize>() {
+        if left == 1 {
+            if right == 1 {
+                ptr::swap(start, mid);
+            } else {
+                let tmp = start.read();
+                copy_forward(mid, start, right);
+                mid.add(right - 1).write(tmp);
+            }
+    
+            return;
+        } else if right == 1 {
+            let tmp = mid.read();
+            copy_backward(start, start.add(1), left);
+            start.write(tmp);
+    
+            return;
+        }   
+    } else {
+        ptr_contrev_rotate::<T>(left, mid, right);
         return;
     }
 
@@ -270,6 +276,11 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
+    if (right == 1) || (left == 1) {
+        ptr_edge_rotate(left, mid, right);
+        return;
+    }
+
     let start = mid.sub(left);
 
     if left < right {
@@ -330,32 +341,34 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 ///
 /// [10  .  .  .  . 15: 1  .  3* 4  .  .  .  .  9]
 /// ```
-pub unsafe fn ptr_piston_rotate<T>(left: usize, mid: *mut T, right: usize) {
+pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
     // if T::IS_ZST {
     // return;
     // }
 
-    let mut l = left as isize;
-    let mut r = right as isize;
-
     loop {
-        if l <= 0 {
-            return;
+        if left <= 1 {
+            break;
         }
 
-        while l <= r {
-            ptr::swap_nonoverlapping(mid.offset(-l), mid.offset(r - l), l as usize);
-            r -= l;
+        while left <= right {
+            ptr::swap_nonoverlapping(mid.sub(left), mid.add(right - left), left);
+            right -= left;
         }
 
-        if r <= 0 {
-            return;
+        if right <= 1 {
+            break;
         }
 
-        while l >= r {
-            ptr::swap_nonoverlapping(mid, mid.offset(-l), r as usize);
-            l -= r;
+        while left >= right {
+            ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+            left -= right;
         }
+    }
+
+    if left > 0 && right > 0 {
+        // left = 0, 1; right = 0, 1
+        ptr_edge_rotate(left, mid, right);
     }
 }
 
@@ -454,7 +467,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
     if left > 0 && right > 0 {
         // left = 0, 1; right = 0, 1
-        ptr_direct_rotate(left, mid, right);
+        ptr_edge_rotate(left, mid, right);
     }
 }
 

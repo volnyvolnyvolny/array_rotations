@@ -23,6 +23,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+use crate::ptr_edge_rotate;
 use crate::swap_backward;
 use crate::swap_forward;
 use std::ptr;
@@ -79,6 +80,11 @@ use std::ptr;
 /// ```
 pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     if (right == 0) || (left == 0) {
+        return;
+    }
+
+    if (right == 1) || (left == 1) {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -148,20 +154,29 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 /// ```
 pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     loop {
-        if (right == 0) || (left == 0) {
-            return;
-        }
+        if left <= right {
+            if left <= 1 {
+                break;
+            }
 
-        if left < right {
             let start = mid.sub(left);
             ptr::swap_nonoverlapping(start, mid, left);
             mid = mid.add(left);
             right -= left;
         } else {
+            if right <= 1 {
+                break;
+            }
+
             ptr::swap_nonoverlapping(mid, mid.sub(right), right);
             mid = mid.sub(right);
             left -= right;
         }
+    }
+
+    if (left == 1) || (right == 1) {
+        ptr_edge_rotate(left, mid, right);
+        return;
     }
 }
 
@@ -209,22 +224,31 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
 /// ```
 pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     loop {
-        if (right == 0) || (left == 0) {
-            return;
-        }
-
         if left <= right {
+            if left <= 1 {
+                break;
+            }
+
             let start = mid.sub(left);
             swap_forward(start, mid, left); // !
 
             mid = mid.add(left);
             right -= left;
         } else {
+            if right <= 1 {
+                break;
+            }
+
             swap_backward(mid.sub(right), mid, right); // !
 
             mid = mid.sub(right);
             left -= right;
         }
+    }
+
+    if (left == 1) || (right == 1) {
+        ptr_edge_rotate(left, mid, right);
+        return;
     }
 }
 
@@ -266,7 +290,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     let mut end = mid.add(right);
     let mut s;
 
-    while left > 0 {
+    while left > 1 {
         if left <= right {
             // -->
             let old_r = right;
@@ -280,7 +304,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
 
         // <--
-        if right < 1 {
+        if right <= 1 {
             break;
         }
 
@@ -292,6 +316,11 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         swap_backward(mid.sub(s), end.sub(s), s);
         mid = mid.sub(s);
         end = end.sub(s);
+    }
+
+    if (left == 1) || (right == 1) {
+        ptr_edge_rotate(left, mid, right);
+        return;
     }
 }
 
