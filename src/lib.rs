@@ -45,20 +45,17 @@ pub use utils::*;
 pub mod gm;
 pub use gm::*;
 
-/// # Edge case (left || right = 1) rotation
+/// # Edge case (left || right = 1)
 ///
 /// Rotates the range `[mid-1, mid+right)` or `[mid-left, mid+1)` such that the element
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
-/// This case is optimized for the case when `left = 1 or right = 1`.
+/// This case is optimized for the situation when `left = 1` or `right = 1`.
 ///
 /// ## Safety
 ///
 /// The specified range must be valid for reading and writing.
-///
-/// ## Example
-///
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let start = mid.sub(left);
 
