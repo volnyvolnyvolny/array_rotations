@@ -514,6 +514,95 @@ Case: `left > right`, `8 - 7`.
 [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 ```
 
+
+## GenContrev (Generalized conjoined triple reversal) rotation
+
+It is the generalization of the Contrev rotation. Instead of moving separate
+elements, we are moving blocks of elements.
+
+In the situation when `gcd(left, right) = 1` it became the usual Contrev.
+
+## Example
+Case: `left > rignt`, `9 > 6`:
+```text
+                            mid
+  ls-->          <--le      |rs--> <--re
+[ 1  2  3  4  5  6: 7  8  9 *a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
+  |  |  |    ╭┈┈┈┈┈ |┈ |┈ |┈┈┴┈┈┴┈┈╯  |  |  |
+  ╰──┴──┴────╮      ╰──┴──┴────╮┈┈┈┈┈┈┴┈┈┴┈┈╯
+  ╭┈┈┈┈┈┈┈┈┈ ╰──────╮        | ╰──────╮
+  ↓        ls       ↓        ↓re      ↓
+[ a ~~~ c  4  .  6  1 ~~~ 3  d  -  f  7 ~~~ 9]  // (ls,         re)
+           |     |    ╭┈┈┈┈┈┈┴┈┈┴┈┈╯
+           ╰──┴──┴────╮
+           ╭┈┈┈┈┈┈┈┈┈ ╰──────╮
+           ↓        ls       ↓re
+[ a ~~~ c  d ~~~ f: 1 ~~~ 3 *4 ~~~ 6  7 ~~~ 9]
+
+
+[ A        B      : C      * D        E      ]
+[ D ~~~~~~ B        A ~~~~~~ E        C ~~~~ ]
+[ D ~~~~~~ E ~~~~~: A ~~~~~* B ~~~~~~ C ~~~~ ]
+```
+
+
+
+Case: `left > right`, `8 > 6`:
+
+```text
+                         mid
+  ls-->          <--le   |rs-->    <--re
+[ 1  2  3  4  5  6: 7  8 *a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
+  |  |    ╭┈┈┈┈┈┈┈┈ |┈ |┈┈┴┈┈╯        |  |
+  ╰──┴────╮         ╰──┴───────╮┈┈┈┈┈┈┴┈┈╯
+  ╭┈┈┈┈┈┈ ╰─────────╮     |    ╰──────╮
+  ↓     ls    le    ↓     ↓     re    ↓
+[ a  b  3  4  5  6  1  2  e  f  c  d  7  8]  // (ls,   le,   re)
+        |  |  ╰──┤  ╭┈┈┈┈┈┈┈┈┈┈┈┴┈┈╯
+        ╰──┴──╮  ╰──────────────╮
+        ╭┈┈┈┈ |┈┈┈┈┈╯           |
+        ↓     ↓ls         re    ↓
+[ a  b  c  d  3  4  1  2  e  f  5  6  7  8]  // (ls,         re)
+              |  |      ╭┈┴┈┈╯
+              ╰──┴──────| ╮
+              ╭┈┈┈┈┈┈┈┈┈╯ |
+              ↓           ↓
+[ a ~~~~~~ d  e  f  1  2  3  4  5 ~~~~~~~ 8]
+
+[ A     B     C   : D   * E     F     G    ]
+[ E ~~~ B     C     A ~~~ G     F     D ~~~]
+[ E ~~~ F ~~~ B     A ~~~ G     C ~~~ D ~~~]
+[ E ~~~ F ~~~ G ~~~ A ~~~ B ~~~ C ~~~ D ~~~]
+```
+
+Case: `left > right`, `8 > 7`:
+
+```text
+                        mid
+  ls-->            <--le|rs-->          <--re
+[ 1  2  3  4  5  6  7: 8* a  b  c  d  e  f  g]  // (ls -> le -> re -> rs -> ls)
+  ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+  ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭──────────────┆─╯
+  ↓  sl            le  |   | sr         re┆
+[ a  2  .  .  .  .  7  1  g╯ b  .  .  .  f╰>8]  // (ls, le, re, rs)
+     ╰────────╮     ╰┈┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈╮ |
+     ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈╯╭─────── ┆─╯
+     ↓  s        e  |         | s     e┆
+[ a  b  3  .  .  6  2  1  g  f╯ c  .  e╰>7  8]  // (ls, le, re, rs)
+        ╰─────╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ┈┈╮ |
+        ╭┈┈┈┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭─ ┆─╯
+        ↓  s  e  |               | e┆
+[ a ~~~ c  4  5╮ 3  2  1  g  f  e╯ d╰>6 ~~~ 8]  // (ls, le,     rs)
+           ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+           ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆─╯
+           ↓  sl-->         <--re┆
+[ a ~~~~~~ d  4  3  2  1  g  f  e╰>5 ~~~~~~ 8]  // (ls,     re)
+              ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
+              ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
+              ↓  ↓  ↓  ↓  ↓  ↓  ↓
+[ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
+```
+
 ## Combined rotations
 
 ### ŕ Default (Stable) rotation

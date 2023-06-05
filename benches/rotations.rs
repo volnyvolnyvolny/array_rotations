@@ -38,7 +38,7 @@ enum Rotation {
     Aux,
     NaiveAux,
     Bridge,
-    Raft,
+    GenContrev,
     Piston,
     GM,
     GMRec,
@@ -151,17 +151,9 @@ fn case<const count: usize>(
                         });
                     };
                 }
-                Raft => {
-                    group.bench_with_input(BenchmarkId::new("Raft", l), l, |b, _| {
-                        b.iter(|| {
-                            buf_test(
-                                ptr_raft_rotate::<[usize; count]>,
-                                l.clone(),
-                                mid,
-                                r,
-                                buffer.as_mut_slice(),
-                            )
-                        })
+                GenContrev => {
+                    group.bench_with_input(BenchmarkId::new("GenContrev", l), l, |b, _| {
+                        b.iter(|| test(ptr_gen_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
                     });
                 }
                 Rev => {
@@ -203,19 +195,19 @@ fn case<const count: usize>(
 fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
     use Rotation::*;
 
-    case::<count>(
-        "Buf",
-        c,
-        length,
-        ls,
-        vec![Direct, NaiveAux, Aux, Bridge, Raft],
-    );
+    case::<count>("Buf", c, length, ls, vec![Direct, NaiveAux, Aux, Bridge]);
 }
 
 fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
     use Rotation::*;
 
-    case::<count>("Contrev", c, length, ls, vec![Direct, Contrev, Bridge, Aux]);
+    case::<count>(
+        "Contrev",
+        c,
+        length,
+        ls,
+        vec![Direct, Contrev, GenContrev, Bridge, Aux],
+    );
 }
 
 fn case_gm<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
@@ -308,85 +300,85 @@ fn bench_buf(c: &mut Criterion) {
 }
 
 fn bench_ends(c: &mut Criterion) {
-    // case_ends::<1>(c, 4);
-    // case_ends::<1>(c, 20);
-    // case_ends::<1>(c, 40);
-    // case_ends::<1>(c, 60);
-    // case_ends::<1>(c, 100);
-    // case_ends::<1>(c, 1000);
-    // case_ends::<1>(c, 10000);
-    // case_ends::<1>(c, 100000);
-    // case_ends::<1>(c, 1000000);
+    case_ends::<1>(c, 4);
+    case_ends::<1>(c, 20);
+    case_ends::<1>(c, 40);
+    case_ends::<1>(c, 60);
+    case_ends::<1>(c, 100);
+    case_ends::<1>(c, 1000);
+    case_ends::<1>(c, 10000);
+    case_ends::<1>(c, 100000);
+    case_ends::<1>(c, 1000000);
 
-    // case_ends::<2>(c, 4);
-    // case_ends::<2>(c, 20);
-    // case_ends::<2>(c, 40);
-    // case_ends::<2>(c, 60);
-    // case_ends::<2>(c, 100);
-    // case_ends::<2>(c, 1000);
-    // case_ends::<2>(c, 10000);
-    // case_ends::<2>(c, 100000);
-    // case_ends::<2>(c, 1000000);
+    case_ends::<2>(c, 4);
+    case_ends::<2>(c, 20);
+    case_ends::<2>(c, 40);
+    case_ends::<2>(c, 60);
+    case_ends::<2>(c, 100);
+    case_ends::<2>(c, 1000);
+    case_ends::<2>(c, 10000);
+    case_ends::<2>(c, 100000);
+    case_ends::<2>(c, 1000000);
 
-    // case_ends::<5>(c, 4);
-    // case_ends::<5>(c, 20);
-    // case_ends::<5>(c, 40);
-    // case_ends::<5>(c, 60);
-    // case_ends::<5>(c, 100);
-    // case_ends::<5>(c, 1000);
-    // case_ends::<5>(c, 10000);
-    // case_ends::<5>(c, 100000);
-    // case_ends::<5>(c, 1000000);
+    case_ends::<5>(c, 4);
+    case_ends::<5>(c, 20);
+    case_ends::<5>(c, 40);
+    case_ends::<5>(c, 60);
+    case_ends::<5>(c, 100);
+    case_ends::<5>(c, 1000);
+    case_ends::<5>(c, 10000);
+    case_ends::<5>(c, 100000);
+    case_ends::<5>(c, 1000000);
 
-    // case_ends::<10>(c, 4);
-    // case_ends::<10>(c, 20);
-    // case_ends::<10>(c, 40);
-    // case_ends::<10>(c, 60);
-    // case_ends::<10>(c, 100);
-    // case_ends::<10>(c, 1000);
-    // case_ends::<10>(c, 10000);
-    // case_ends::<10>(c, 100000);
-    // case_ends::<10>(c, 1000000);
+    case_ends::<10>(c, 4);
+    case_ends::<10>(c, 20);
+    case_ends::<10>(c, 40);
+    case_ends::<10>(c, 60);
+    case_ends::<10>(c, 100);
+    case_ends::<10>(c, 1000);
+    case_ends::<10>(c, 10000);
+    case_ends::<10>(c, 100000);
+    case_ends::<10>(c, 1000000);
 
-    // case_ends::<15>(c, 4);
-    // case_ends::<15>(c, 20);
-    // case_ends::<15>(c, 40);
-    // case_ends::<15>(c, 60);
-    // case_ends::<15>(c, 100);
-    // case_ends::<15>(c, 1000);
-    // case_ends::<15>(c, 10000);
-    // case_ends::<15>(c, 100000);
-    // case_ends::<15>(c, 1000000);
+    case_ends::<15>(c, 4);
+    case_ends::<15>(c, 20);
+    case_ends::<15>(c, 40);
+    case_ends::<15>(c, 60);
+    case_ends::<15>(c, 100);
+    case_ends::<15>(c, 1000);
+    case_ends::<15>(c, 10000);
+    case_ends::<15>(c, 100000);
+    case_ends::<15>(c, 1000000);
 
-    // case_ends::<20>(c, 4);
-    // case_ends::<20>(c, 20);
-    // case_ends::<20>(c, 40);
-    // case_ends::<20>(c, 60);
-    // case_ends::<20>(c, 100);
-    // case_ends::<20>(c, 1000);
-    // case_ends::<20>(c, 10000);
-    // case_ends::<20>(c, 100000);
-    // case_ends::<20>(c, 1000000);
+    case_ends::<20>(c, 4);
+    case_ends::<20>(c, 20);
+    case_ends::<20>(c, 40);
+    case_ends::<20>(c, 60);
+    case_ends::<20>(c, 100);
+    case_ends::<20>(c, 1000);
+    case_ends::<20>(c, 10000);
+    case_ends::<20>(c, 100000);
+    case_ends::<20>(c, 1000000);
 
-    // case_ends::<40>(c, 4);
-    // case_ends::<40>(c, 20);
-    // case_ends::<40>(c, 40);
-    // case_ends::<40>(c, 60);
-    // case_ends::<40>(c, 100);
-    // case_ends::<40>(c, 1000);
-    // case_ends::<40>(c, 10000);
-    // case_ends::<40>(c, 100000);
-    // case_ends::<40>(c, 1000000);
+    case_ends::<40>(c, 4);
+    case_ends::<40>(c, 20);
+    case_ends::<40>(c, 40);
+    case_ends::<40>(c, 60);
+    case_ends::<40>(c, 100);
+    case_ends::<40>(c, 1000);
+    case_ends::<40>(c, 10000);
+    case_ends::<40>(c, 100000);
+    case_ends::<40>(c, 1000000);
 
-    // case_ends::<60>(c, 4);
-    // case_ends::<60>(c, 20);
-    // case_ends::<60>(c, 40);
-    // case_ends::<60>(c, 60);
-    // case_ends::<60>(c, 100);
-    // case_ends::<60>(c, 1000);
-    // case_ends::<60>(c, 10000);
-    // case_ends::<60>(c, 100000);
-    // case_ends::<60>(c, 1000000);
+    case_ends::<60>(c, 4);
+    case_ends::<60>(c, 20);
+    case_ends::<60>(c, 40);
+    case_ends::<60>(c, 60);
+    case_ends::<60>(c, 100);
+    case_ends::<60>(c, 1000);
+    case_ends::<60>(c, 10000);
+    case_ends::<60>(c, 100000);
+    case_ends::<60>(c, 1000000);
 
     case_ends::<80>(c, 4);
     case_ends::<80>(c, 20);
@@ -396,7 +388,7 @@ fn bench_ends(c: &mut Criterion) {
     case_ends::<80>(c, 1000);
     case_ends::<80>(c, 10000);
     case_ends::<80>(c, 100000);
-    // case_ends::<80>(c, 1000000);
+    case_ends::<80>(c, 1000000);
 
     case_ends::<100>(c, 4);
     case_ends::<100>(c, 20);
@@ -405,8 +397,8 @@ fn bench_ends(c: &mut Criterion) {
     case_ends::<100>(c, 100);
     case_ends::<100>(c, 1000);
     case_ends::<100>(c, 10000);
-    // case_ends::<100>(c, 100000);
-    // case_ends::<100>(c, 1000000);
+    case_ends::<100>(c, 100000);
+    case_ends::<100>(c, 1000000);
 }
 
 fn bench_contrev(c: &mut Criterion) {

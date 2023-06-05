@@ -20,7 +20,7 @@ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO↓FTWARE.
 */
 
 #![doc = include_str!("../README.md")]
@@ -34,8 +34,6 @@ use std::cmp;
 
 use std::ptr;
 use std::slice;
-
-// use gcd::Gcd;
 
 pub mod buf;
 pub use buf::*;
@@ -69,15 +67,15 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
                 copy_forward(mid, start, right);
                 mid.add(right - 1).write(tmp);
             }
-    
+
             return;
         } else if right == 1 {
             let tmp = mid.read();
             copy_backward(start, start.add(1), left);
             start.write(tmp);
-    
+
             return;
-        }   
+        }
     } else {
         ptr_contrev_rotate::<T>(left, mid, right);
         return;
@@ -86,7 +84,187 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     ptr_direct_rotate::<T>(left, mid, right); // fallback
 }
 
-// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
+/// # GenContrev (Generalized conjoined triple reversal) rotation
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+/// right.
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Algorithm
+///
+/// It is the generalization of the Contrev rotation. Instead of moving separate elements we move
+/// blocks of elements.
+///
+/// In the situation when `gcd(left, right) = 1`
+/// it became the usual Contrev.
+///
+/// ## Example
+///
+/// Case: `left > rignt`, `9 > 6`:
+///
+/// ```text
+///                             mid
+///   ls-->          <--le      |rs--> <--re
+/// [ 1  2  3  4  5  6: 7  8  9 *a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
+///   |  |  |    ╭┈┈┈┈┈ |┈ |┈ |┈┈┴┈┈┴┈┈╯  |  |  |
+///   ╰──┴──┴────╮      ╰──┴──┴────╮┈┈┈┈┈┈┴┈┈┴┈┈╯
+///   ╭┈┈┈┈┈┈┈┈┈ ╰──────╮        | ╰──────╮
+///   ↓        ls       ↓        ↓re      ↓
+/// [ a ~~~ c  4  .  6  1 ~~~ 3  d  -  f  7 ~~~ 9]  // (ls,         re)
+///            |     |    ╭┈┈┈┈┈┈┴┈┈┴┈┈╯
+///            ╰──┴──┴────╮
+///            ╭┈┈┈┈┈┈┈┈┈ ╰──────╮
+///            ↓        ls       ↓re
+/// [ a ~~~ c  d ~~~ f: 1 ~~~ 3 *4 ~~~ 6  7 ~~~ 9]
+///
+/// [ A        B      : C      * D        E      ]
+/// [ D ~~~~~~ B        A ~~~~~~ E        C ~~~~ ]
+/// [ D ~~~~~~ E ~~~~~: A ~~~~~* B ~~~~~~ C ~~~~ ]
+/// ```
+///
+/// Case: `left > right`, `8 > 6`:
+///
+/// ```text
+///                          mid
+///   ls-->          <--le   |rs-->    <--re
+/// [ 1  2  3  4  5  6: 7  8 *a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
+///   |  |    ╭┈┈┈┈┈┈┈┈ |┈ |┈┈┴┈┈╯        |  |
+///   ╰──┴────╮         ╰──┴───────╮┈┈┈┈┈┈┴┈┈╯
+///   ╭┈┈┈┈┈┈ ╰─────────╮     |    ╰──────╮
+///   ↓     ls    le    ↓     ↓     re    ↓
+/// [ a  b  3  4  5  6  1  2  e  f  c  d  7  8]  // (ls,   le,   re)
+///         |  |  ╰──┤  ╭┈┈┈┈┈┈┈┈┈┈┈┴┈┈╯
+///         ╰──┴──╮  ╰──────────────╮
+///         ╭┈┈┈┈ |┈┈┈┈┈╯           |
+///         ↓     ↓ls         re    ↓
+/// [ a  b  c  d  3  4  1  2  e  f  5  6  7  8]  // (ls,         re)
+///               |  |      ╭┈┴┈┈╯
+///               ╰──┴──────| ╮
+///               ╭┈┈┈┈┈┈┈┈┈╯ |
+///               ↓           ↓
+/// [ a ~~~~~~ d  e  f  1  2  3  4  5 ~~~~~~~ 8]
+///
+/// [ A     B     C   : D   * E     F     G    ]
+/// [ E ~~~ B     C     A ~~~ G     F     D ~~~]
+/// [ E ~~~ F ~~~ B     A ~~~ G     C ~~~ D ~~~]
+/// [ E ~~~ F ~~~ G ~~~ A ~~~ B ~~~ C ~~~ D ~~~]
+/// ```
+///
+/// Case: `left > right`, `8 > 7`:
+///
+/// ```text
+///                         mid
+///   ls-->            <--le|rs-->          <--re
+/// [ 1  2  3  4  5  6  7: 8* a  b  c  d  e  f  g]  // (ls -> le -> re -> rs -> ls)
+///   ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+///   ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭──────────────┆─╯
+///   ↓  sl            le  |   | sr         re┆
+/// [ a  2  .  .  .  .  7  1  g╯ b  .  .  .  f╰>8]  // (ls, le, re, rs)
+///      ╰────────╮     ╰┈┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈╮ |
+///      ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈╯╭─────── ┆─╯
+///      ↓  s        e  |         | s     e┆
+/// [ a  b  3  .  .  6  2  1  g  f╯ c  .  e╰>7  8]  // (ls, le, re, rs)
+///         ╰─────╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆ ┈┈╮ |
+///         ╭┈┈┈┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯╭─ ┆─╯
+///         ↓  s  e  |               | e┆
+/// [ a ~~~ c  4  5╮ 3  2  1  g  f  e╯ d╰>6 ~~~ 8]  // (ls, le,     rs)
+///            ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
+///            ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆─╯
+///            ↓  sl-->         <--re┆
+/// [ a ~~~~~~ d  4  3  2  1  g  f  e╰>5 ~~~~~~ 8]  // (ls,     re)
+///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
+///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
+///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
+/// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
+/// ```
+pub unsafe fn ptr_gen_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
+    // if T::IS_ZST {
+    // return;
+    // }
+
+    if left == 0 || right == 0 {
+        return;
+    }
+
+    let gcd = gcd::binary_usize(left, right);
+
+    if left == right {
+        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+    } else {
+        let (mut ls, mut le) = (mid.sub(left), mid.sub(gcd));
+        let (mut rs, mut re) = (mid, mid.add(right).sub(gcd));
+
+        let half_min = cmp::min(left, right) / gcd / 2;
+        let half_max = cmp::max(left, right) / gcd / 2;
+
+        for _ in 0..half_min {
+            // Permutation (ls, le, re, rs)
+            for _ in 0..gcd {
+                ls.write(rs.replace(re.replace(le.replace(ls.read()))));
+
+                ls = ls.add(1);
+                le = le.add(1);
+                rs = rs.add(1);
+                re = re.add(1);
+            }
+
+            le = le.sub(2 * gcd);
+            re = re.sub(2 * gcd);
+        }
+
+        if left > right {
+            for _ in 0..half_max - half_min {
+                // (ls, le, re)
+                for _ in 0..gcd {
+                    ls.write(re.replace(le.replace(ls.read())));
+
+                    ls = ls.add(1);
+                    le = le.add(1);
+                    re = re.add(1);
+                }
+
+                le = le.sub(2 * gcd);
+                re = re.sub(2 * gcd);
+            }
+        } else {
+            for _ in 0..half_max - half_min {
+                // (rs, re, ls)
+                for _ in 0..gcd {
+                    ls.write(rs.replace(re.replace(ls.read())));
+
+                    ls = ls.add(1);
+                    rs = rs.add(1);
+                    re = re.add(1);
+                }
+
+                re = re.sub(2 * gcd);
+            }
+        }
+
+        let center = (re.offset_from(ls).abs() / 2) as usize / gcd;
+
+        for _ in 0..center {
+            for _ in 0..gcd {
+                // (re, ls)
+                ls.write(re.replace(ls.read()));
+
+                ls = ls.add(1);
+                re = re.add(1);
+            }
+
+            re = re.sub(2 * gcd);
+        }
+    }
+}
+
+// unsafe fn print<T>(label: &str, mut p: *const T, size: usize)
+// where
+//     T: std::fmt::Debug,
+// {
 //     print!("{} [", label);
 
 //     for i in 0..size {
@@ -99,64 +277,6 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 //     }
 
 //     println!("]");
-// }
-
-// /// # Edge case (left || right = 1) rotation
-// ///
-// /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-// /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-// /// right.
-// ///
-// /// In this case `left = 1 or right = 1`, `left != right`.
-// ///
-// /// ## Safety
-// ///
-// /// The specified range must be valid for reading and writing.
-// ///
-// /// ## Example
-// ///
-// pub unsafe fn ptr_rotate_edge<T>(left: usize, mid: *mut T, right: usize) {
-//     let size = left + right;
-//     let r = size_of::<T>() / size_of::<usize>();
-
-//     if r <= 1 {
-//         if size <= 10 {
-//             ptr_direct_rotate<T>(left, mid, right);
-//         } else if size <= 1000 {
-//             ptr_reversal_rotate<T>(left, mid, right);
-//         } else {
-//             ptr_aux_rotate<T>(left, mid, right);
-//         }
-//     }
-
-//     if (size <= 10) && r <= 1 {
-//         ptr_direct_rotate<T>(left, mid, right);
-//     } else if size <= 30 {
-//         if r <= 2 {
-
-//         } else
-
-//         ptr
-//     }
-
-//     if (right == 0) || (left == 0) {
-//         return;
-//     }
-
-//     unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-//         let slice = slice::from_raw_parts_mut(p, size);
-//         slice.reverse();
-//     }
-
-//     let start = mid.sub(left);
-
-//     if left == right {
-//         ptr::swap_nonoverlapping(mid, start, left);
-//     } else {
-//         reverse_slice(start, left);
-//         reverse_slice(mid, right);
-//         reverse_slice(start, left + right);
-//     }
 // }
 
 /// # Triple reversal rotation
@@ -471,21 +591,6 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     }
 }
 
-// unsafe fn print<T: std::fmt::Debug>(label: &str, mut p: *const T, size: usize) {
-//     print!("{} [", label);
-
-//     for i in 0..size {
-//         if i == size - 1 {
-//             print!("{:?}", p.read());
-//         } else {
-//             print!("{:?} ", p.read());
-//             p = p.add(1);
-//         }
-//     }
-
-//     println!("]");
-// }
-
 /// # Direct aka Juggling aka Dolphin rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at
@@ -546,6 +651,18 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// ~───────╮        ┆        ┆        ┆        ┆         ┆        ┆
 ///   _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓  _  _  ↓   _  _  ↓  _  _  ↓
 /// [10  . 12  .  . 15: .  .  3* .  .  6  .  .  9][ .  . 12  .  . 15...
+/// ```
+///
+/// ```text
+///                            mid
+///           left = 9         |    right = 6
+/// [ 1  2  3  4  5  6: 7  8  9* a  b  c  d  e  f]
+///   └─────|  └─────|  └─────|  └─────|  └─────|
+///  ~╮     └───────────╮     |        └────────────╮
+///   |              |  |     └───────────╮     |   |
+///  ~| ───────╮     └───────────╮        |     └───| ───────╮
+///   ↓        ↓        ↓        ↓        ↓         ↓        ↓
+/// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9][ a ~~~ c  d ~~~ f...
 /// ```
 pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
@@ -735,12 +852,12 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    let (mut ls, mut le) = (mid.sub(left), mid.sub(1));
-    let (mut rs, mut re) = (mid, mid.add(right).sub(1));
-
     if left == right {
         ptr::swap_nonoverlapping(mid, mid.sub(left), right);
     } else {
+        let (mut ls, mut le) = (mid.sub(left), mid.sub(1));
+        let (mut rs, mut re) = (mid, mid.add(right).sub(1));
+
         let half_min = cmp::min(left, right) / 2;
         let half_max = cmp::max(left, right) / 2;
 
@@ -1277,6 +1394,11 @@ mod tests {
     #[test]
     fn ptr_contrev_rotate_correct() {
         test_correct(ptr_contrev_rotate::<usize>);
+    }
+
+    #[test]
+    fn ptr_gen_contrev_rotate_correct() {
+        test_correct(ptr_gen_contrev_rotate::<usize>);
     }
 
     #[test]

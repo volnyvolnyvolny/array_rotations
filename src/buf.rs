@@ -170,7 +170,6 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 ///                                    ┌────────┬───────┴──┘
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
-
 pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
     // if T::IS_ZST {
     // return;
@@ -194,128 +193,6 @@ pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, bu
         ptr::copy_nonoverlapping(buf, start, right);
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
-    }
-}
-
-/// # Raft rotation
-///
-/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-/// right.
-///
-/// ## Algorithm
-///
-/// 1. Move first *buffer size* elements from bridge to buffer, creating the vacant space;
-/// 2.a Let *a* be the first position from the l-side to be moved;
-/// 2.b let *b* be the first vacant position;
-/// 2.c let *c* be the first pos. from the r-side to be moved.
-/// 3. *a* goes to *b*, *c* goes to *a*;
-/// 4. increment *a*, *b*, *c* and repeat step **2** while *b* is vacant;
-/// 5. Fill the vacant positions with buffer elements.
-/// 6. Let *new bridge* be the elements *[b, c)*, repeat **1**.
-///
-/// 2023 -- by Valentin Vasilev
-///
-/// ## Properties
-///
-/// 1. If bridge = buffer -- it's a classical *Bridge* rotation.
-///
-/// ## Safety
-///
-/// The specified range must be valid for reading and writing.
-///
-/// # Examples:
-///
-/// Buffer size 3 (bridge = 5):
-///
-/// ```text
-///                dim            mid
-///     left = 10  |              |   right = 5
-/// [ 1-3      4  5: 6  7  8  9 10*11 12 13 14 15]
-///   └─┴───────────────────────────────────────────────┬─────┐
-/// [ ✘  ✘  ✘  4-6      7  .  .  .  .  .  .  . 15]    [ 1  2  3]
-///            ┌─────┬──────────────────────────────────┴─────┘
-/// [ ✘  ✘  ✘  1 ~~~ 3  7-9      .  .  .  .  . 15]    [ 4  5  6]
-///                     └─┴─────────────────────────────┬─────┐
-/// [ ✘  ✘  ✘  1  .  3  4 ~~~ 6 10  .  .  .  . 15]    [ 7  8  9]
-///                              ┌─────┬────────────────┴─────┘
-/// [ ✘  ✘  ✘  1  .  .  .  .  .  7  .  9  .  . 15]    [10 11 12]
-///                                       ┌─────┬───────┴─────┘
-/// [ ✘  ✘  ✘  1  .  .  .  .  .  .  .  9 10  . 12]    [13 14 15]
-///   ┌─────┬───────────────────────────────────────────┴─────┘
-/// [13  . 15  1  .  .  .  .  .  .  .  .  .  . 12]
-/// ```
-pub unsafe fn ptr_raft_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    // N.B. the below algorithms can fail if these cases are not checked
-    if (right == 0) || (left == 0) {
-        return;
-    }
-
-    let buf = buffer.as_mut_ptr();
-
-    loop {
-        let start = mid.sub(left);
-
-        // beginning of first round
-        let mut tmp: T = start.read();
-        let mut i = right;
-
-        // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
-        // but it is faster to do one loop which calculates the gcd as a side effect, then
-        // doing the rest of the chunk
-        let mut gcd = right;
-
-        // benchmarks reveal that it is faster to swap temporaries all the way through instead
-        // of reading one temporary once, copying backwards, and then writing that temporary at
-        // the very end. This is possibly due to the fact that swapping or replacing temporaries
-        // uses only one memory address in the loop instead of needing to manage two.
-        loop {
-            tmp = start.add(i).replace(tmp);
-
-            // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the next increment. This prevents
-            // any wrapping of pointers or `usize`.
-            if i >= left {
-                i -= left;
-                if i == 0 {
-                    // end of first round
-                    start.write(tmp);
-                    break;
-                }
-                // this conditional must be here if `left + right >= 15`
-                if i < gcd {
-                    gcd = i;
-                }
-            } else {
-                i += right;
-            }
-        }
-
-        // finish the chunk with more rounds
-
-        if gcd > 1 {
-            ptr::copy_nonoverlapping(start.add(1), buf, gcd - 1);
-            i = 1 + right;
-
-            loop {
-                ptr::swap_nonoverlapping(start.add(i), buf, gcd - 1);
-
-                if i >= left {
-                    i -= left;
-                    if i == 1 {
-                        ptr::copy_nonoverlapping(buf, start.add(1), gcd - 1);
-                        break;
-                    }
-                } else {
-                    i += right;
-                }
-            }
-        }
-        return;
     }
 }
 
@@ -704,11 +581,6 @@ mod tests {
     #[test]
     fn ptr_bridge_rotate_correct() {
         test_correct(ptr_bridge_rotate::<usize>);
-    }
-
-    #[test]
-    fn ptr_raft_rotate_correct() {
-        test_correct(ptr_raft_rotate::<usize>);
     }
 
     #[test]
