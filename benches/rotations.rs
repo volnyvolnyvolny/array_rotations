@@ -300,105 +300,11 @@ fn bench_buf(c: &mut Criterion) {
 }
 
 fn bench_ends(c: &mut Criterion) {
-    case_ends::<1>(c, 4);
-    case_ends::<1>(c, 20);
-    case_ends::<1>(c, 40);
-    case_ends::<1>(c, 60);
-    case_ends::<1>(c, 100);
-    case_ends::<1>(c, 1000);
-    case_ends::<1>(c, 10000);
-    case_ends::<1>(c, 100000);
-    case_ends::<1>(c, 1000000);
-
-    case_ends::<2>(c, 4);
-    case_ends::<2>(c, 20);
-    case_ends::<2>(c, 40);
-    case_ends::<2>(c, 60);
-    case_ends::<2>(c, 100);
-    case_ends::<2>(c, 1000);
-    case_ends::<2>(c, 10000);
-    case_ends::<2>(c, 100000);
-    case_ends::<2>(c, 1000000);
-
-    case_ends::<5>(c, 4);
-    case_ends::<5>(c, 20);
-    case_ends::<5>(c, 40);
-    case_ends::<5>(c, 60);
-    case_ends::<5>(c, 100);
-    case_ends::<5>(c, 1000);
-    case_ends::<5>(c, 10000);
-    case_ends::<5>(c, 100000);
-    case_ends::<5>(c, 1000000);
-
-    case_ends::<10>(c, 4);
-    case_ends::<10>(c, 20);
-    case_ends::<10>(c, 40);
-    case_ends::<10>(c, 60);
-    case_ends::<10>(c, 100);
-    case_ends::<10>(c, 1000);
-    case_ends::<10>(c, 10000);
-    case_ends::<10>(c, 100000);
-    case_ends::<10>(c, 1000000);
-
-    case_ends::<15>(c, 4);
-    case_ends::<15>(c, 20);
-    case_ends::<15>(c, 40);
-    case_ends::<15>(c, 60);
-    case_ends::<15>(c, 100);
-    case_ends::<15>(c, 1000);
-    case_ends::<15>(c, 10000);
-    case_ends::<15>(c, 100000);
-    case_ends::<15>(c, 1000000);
-
-    case_ends::<20>(c, 4);
-    case_ends::<20>(c, 20);
-    case_ends::<20>(c, 40);
-    case_ends::<20>(c, 60);
-    case_ends::<20>(c, 100);
-    case_ends::<20>(c, 1000);
-    case_ends::<20>(c, 10000);
-    case_ends::<20>(c, 100000);
-    case_ends::<20>(c, 1000000);
-
-    case_ends::<40>(c, 4);
-    case_ends::<40>(c, 20);
-    case_ends::<40>(c, 40);
-    case_ends::<40>(c, 60);
-    case_ends::<40>(c, 100);
-    case_ends::<40>(c, 1000);
-    case_ends::<40>(c, 10000);
-    case_ends::<40>(c, 100000);
-    case_ends::<40>(c, 1000000);
-
-    case_ends::<60>(c, 4);
-    case_ends::<60>(c, 20);
-    case_ends::<60>(c, 40);
-    case_ends::<60>(c, 60);
-    case_ends::<60>(c, 100);
-    case_ends::<60>(c, 1000);
-    case_ends::<60>(c, 10000);
-    case_ends::<60>(c, 100000);
-    case_ends::<60>(c, 1000000);
-
-    case_ends::<80>(c, 4);
-    case_ends::<80>(c, 20);
-    case_ends::<80>(c, 40);
-    case_ends::<80>(c, 60);
-    case_ends::<80>(c, 100);
-    case_ends::<80>(c, 1000);
-    case_ends::<80>(c, 10000);
-    case_ends::<80>(c, 100000);
-    case_ends::<80>(c, 1000000);
-
-    case_ends::<100>(c, 4);
-    case_ends::<100>(c, 20);
-    case_ends::<100>(c, 40);
-    case_ends::<100>(c, 60);
-    case_ends::<100>(c, 100);
-    case_ends::<100>(c, 1000);
-    case_ends::<100>(c, 10000);
-    case_ends::<100>(c, 100000);
-    case_ends::<100>(c, 1000000);
+    seq_macro::seq!(i in 1..=100 {
+        for l in [1, 2, 5, 10, 15, 18, 20, 40, 60, 80, 100] {
+            case_ends::<i>(c, l);
+        }
+    });
 }
 
 fn bench_contrev(c: &mut Criterion) {
