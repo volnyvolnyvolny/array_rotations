@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use pprof::criterion::{Output, PProfProfiler};
 
-use rust_rotations::utils::*;
+use rust_rotations::{ptr_contrev_rotate, ptr_direct_rotate, ptr_reversal_rotate, utils::*};
 
 // use std::time::Duration;
 use std::ptr;
@@ -214,6 +214,18 @@ fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
         group.bench_with_input(BenchmarkId::new("utils::shift_left", l), l, |b, _l| {
             b.iter(|| unsafe { shift_left::<[usize; count]>(start.add(1), *l) })
         });
+
+        group.bench_with_input(BenchmarkId::new("ptr_contrev_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_contrev_rotate::<[usize; count]>(1, start.add(1), *l) })
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr_reversal_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(1, start.add(1), *l) })
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr_direct_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_direct_rotate::<[usize; count]>(1, start.add(1), *l) })
+        });
     }
 
     group.finish();
@@ -246,6 +258,18 @@ fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
 
         group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
             b.iter(|| unsafe { shift_right::<[usize; count]>(start, *l) })
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr_contrev_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_contrev_rotate::<[usize; count]>(*l, start, 1) })
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr_reversal_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(*l, start, 1) })
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr_direct_rotate", l), l, |b, _l| {
+            b.iter(|| unsafe { ptr_direct_rotate::<[usize; count]>(*l, start, 1) })
         });
     }
 
