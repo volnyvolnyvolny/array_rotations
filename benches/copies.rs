@@ -16,7 +16,7 @@ fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
 
 /// ```text
 ///  start
-///  |                                 count = 3
+///  | distance = 12                  count = 3
 /// [1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
 ///  [:///:] ------>                     [:\\\:]
 ///  src                                 dst
@@ -36,7 +36,7 @@ fn forward_test<T>(
 
 /// ```text
 ///                                              end
-///                                    count = 3 |
+///   distance = 12                    count = 3 |
 /// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
 ///   [:\\\:]                    <------  [:///:]
 ///   dst                                 src
@@ -60,7 +60,7 @@ fn backward_test<T>(
 ///   |
 /// [ 1  2  3  4  5  6  7  8  9]
 ///   [://////:]
-///         d = 3
+///         distance = 2
 /// [ 1  2  1  2  3  4  7  8  9]
 ///         [:\\\\\\:]
 /// ```
@@ -143,6 +143,48 @@ fn case_copy_overlapping_backward<const count: usize>(
     group.finish();
 }
 
+/// ```text
+///   start           
+///   |               count = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///                       d = 3
+/// [ 1  2  1  2  3  4  7  8  9]
+///            [://////:]
+/// ```
+fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Copy distances/{len}/{count}"));
+    let max_distance = distances.iter().max().unwrap();
+    let mut v = seq(len + max_distance);
+
+    for d in distances {
+        let start = *&v[..].as_mut_ptr();
+        let end = unsafe { start.add(len + max_distance) };
+
+        group.bench_with_input(BenchmarkId::new("utils::copy_forward", d), d, |b, _| {
+            b.iter(|| forward_test(copy_forward::<[usize; count]>, start, *d, len))
+        });
+
+        group.bench_with_input(BenchmarkId::new("utils::copy_backward", d), d, |b, _| {
+            b.iter(|| backward_test(copy_backward::<[usize; count]>, end, *d, len))
+        });
+
+        group.bench_with_input(
+            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
+            d,
+            |b, _| {
+                b.iter(|| forward_test(ptr::copy_nonoverlapping::<[usize; count]>, start, *d, len))
+            },
+        );
+
+        group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _| {
+            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, len))
+        });
+    }
+
+    group.finish();
+}
+
 // /// ```text
 // ///   start
 // ///   |               count = 4
@@ -182,46 +224,6 @@ fn case_copy_overlapping_backward<const count: usize>(
 
 //     group.finish();
 // }
-
-/// ```text
-///   start           
-///   |               count = 4
-/// [ 1  2  3  4  5  6  7  8  9]
-///   [://////:]
-///                       d = 3
-/// [ 1  2  1  2  3  4  7  8  9]
-///            [://////:]
-/// ```
-fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy distances/{len}/{count}"));
-    let max_distance = distances.iter().max().unwrap();
-    let mut v = seq(len + max_distance);
-
-    for d in distances {
-        let start = *&v[..].as_mut_ptr();
-
-        group.bench_with_input(BenchmarkId::new("utils::copy_forward", d), d, |b, _| {
-            b.iter(|| backward_test(copy_forward::<[usize; count]>, start, *d, count))
-        });
-        group.bench_with_input(BenchmarkId::new("utils::copy_backward", d), d, |b, _| {
-            b.iter(|| backward_test(copy_backward::<[usize; count]>, start, *d, count))
-        });
-        group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
-            d,
-            |b, _| {
-                b.iter(|| {
-                    backward_test(ptr::copy_nonoverlapping::<[usize; count]>, start, *d, count)
-                })
-            },
-        );
-        group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _| {
-            b.iter(|| backward_test(ptr::copy::<[usize; count]>, start, *d, count))
-        });
-    }
-
-    group.finish();
-}
 
 /// cargo bench --bench=copies "Copy distance"
 fn bench_copy_distance(c: &mut Criterion) {
