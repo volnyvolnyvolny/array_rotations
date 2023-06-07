@@ -64,6 +64,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
                 ptr::swap(start, mid);
             } else {
                 let tmp = start.read();
+
                 copy_forward(mid, start, right);
                 mid.add(right - 1).write(tmp);
             }
