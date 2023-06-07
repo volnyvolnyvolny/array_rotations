@@ -325,6 +325,9 @@ fn bench_shift_left(c: &mut Criterion) {
 
     case_shift_left::<10>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
     case_shift_left::<10>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_left::<20>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_left::<20>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
 }
 
 /// cargo bench --bench=copies "Shift right"
@@ -337,6 +340,9 @@ fn bench_shift_right(c: &mut Criterion) {
 
     case_shift_right::<10>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
     case_shift_right::<10>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_right::<20>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_right::<20>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
 }
 
 criterion_group! {
