@@ -151,7 +151,7 @@ pub unsafe fn copy_forward<T>(src: *const T, dst: *mut T, count: usize) {
 ///            └─────────────────┘
 /// [ 1  2 :4 *5  6  7  8  9 10 10 11  .  .  . 15]
 /// ```
-pub unsafe fn shift_left<T: std::fmt::Debug>(arr: *mut T, count: usize) {
+pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
     let arr = arr.cast::<MaybeUninit<T>>();
 
     for i in 0..count {

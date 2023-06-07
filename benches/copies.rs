@@ -185,59 +185,86 @@ fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distanc
     group.finish();
 }
 
-// /// ```text
-// ///   start
-// ///   |               count = 4
-// /// [ 1  2  3  4  5  6  7  8  9]
-// ///                  [:\\\\\\:]
-// ///                       d = 3
-// /// [ 1  2  1  2  3  4  7  8  9]
-// ///            [://////:]
-// /// ```
-// fn case_shift_left<const count: usize>(c: &mut Criterion, len: usize) {
-//     let mut group = c.benchmark_group(format!("Shift left/{count}"));
-//     let mut v = seq(len);
+/// ```text
+///   start                  end
+///   |              count = 4 |
+/// [ 1  2  3  4  5  6  7  8  9]
+///                  [:\\\\\\:]
+///
+/// [ 1  2  3  4  6  7  8  9  9]
+///               [://////:]
+/// ```
+fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
+    let max_len = *lens.iter().max().unwrap();
+    let mut group = c.benchmark_group(format!("Shift left/{max_len}/{count}"));
+    let mut v = seq(max_len + 1);
 
-//     // let end = unsafe { &v[..].as_mut_ptr().add(len) };
+    let start = *&v[..].as_mut_ptr();
+    let end = unsafe { start.add(max_len + 1) };
 
-//     group.bench_with_input(BenchmarkId::new("utils::copy_forward", d), d, |b, _d| {
-//         b.iter(|| forward_test(copy_forward::<usize>, &end, 1, count))
-//     });
+    for l in lens {
+        group.bench_with_input(BenchmarkId::new("utils::copy_forward", l), l, |b, _l| {
+            b.iter(|| backward_test(copy_forward::<[usize; count]>, end, 1, *l))
+        });
 
-//     group.bench_with_input(BenchmarkId::new("ptr::copy", 1), &1, |b, _d| {
-//         b.iter(|| forward_test(copy_forward::<usize>, &end, 1, len))
-//     });
+        group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
+            b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, 1, *l))
+        });
 
-//     group.bench_with_input(BenchmarkId::new("utils::shift_left", 1), &1, |b, _d| {
-//         b.iter(|| forward_test(shift_left::<usize>, *end, 1, count))
-//     });
+        group.bench_with_input(BenchmarkId::new("utils::shift_left", l), l, |b, _l| {
+            b.iter(|| unsafe { shift_left::<[usize; count]>(start.add(1), *l) })
+        });
+    }
 
-//     // group.bench_with_input(
-//     //     BenchmarkId::new("ptr::copy_nonoverlapping", d),
-//     //     d,
-//     //     |b, _d| b.iter(|| backward_test(ptr::copy::<usize>, *end, *d, count)),
-//     // );
+    group.finish();
+}
 
-//     // group.bench_with_input(BenchmarkId::new("ptr::copy", 1), |b, _d| {
-//     //     b.iter(|| backward_test(ptr::copy::<usize>, *end, 1, len))
-//     // });
+/// ```text
+///   start                  end
+///   |              count = 4 |
+/// [ 1  2  3  4  5  6  7  8  9]
+///                  [:\\\\\\:]
+///
+/// [ 1  2  3  4  6  7  8  9  9]
+///               [://////:]
+/// ```
+fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
+    let max_len = *lens.iter().max().unwrap();
+    let mut group = c.benchmark_group(format!("Shift right/{max_len}/{count}"));
+    let mut v = seq(max_len + 1);
 
-//     group.finish();
-// }
+    let start = *&v[..].as_mut_ptr();
+
+    for l in lens {
+        group.bench_with_input(BenchmarkId::new("utils::copy_backward", l), l, |b, _l| {
+            b.iter(|| forward_test(copy_forward::<[usize; count]>, start, 1, *l))
+        });
+
+        group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
+            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, 1, *l))
+        });
+
+        group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
+            b.iter(|| unsafe { shift_right::<[usize; count]>(start, *l) })
+        });
+    }
+
+    group.finish();
+}
 
 /// cargo bench --bench=copies "Copy distance"
 fn bench_copy_distance(c: &mut Criterion) {
-    case_copy_distance::<1>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 1000]);
-    case_copy_distance::<1>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 1000]);
+    case_copy_distance::<1>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100]);
+    case_copy_distance::<1>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 100]);
 
-    case_copy_distance::<2>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 1000]);
-    case_copy_distance::<2>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 1000]);
+    case_copy_distance::<2>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100]);
+    case_copy_distance::<2>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 100]);
 
-    case_copy_distance::<4>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 1000]);
-    case_copy_distance::<4>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 1000]);
+    case_copy_distance::<4>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100]);
+    case_copy_distance::<4>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 100]);
 
-    case_copy_distance::<10>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 1000]);
-    case_copy_distance::<10>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 1000]);
+    case_copy_distance::<10>(c, 1, &[0, 1, 2, 3, 5, 20, 50, 100]);
+    case_copy_distance::<10>(c, 2, &[0, 1, 2, 3, 4, 5, 20, 50, 100]);
 }
 
 /// cargo bench --bench=copies "Copy forward"
@@ -264,11 +291,29 @@ fn bench_copy_overlapping_backward(c: &mut Criterion) {
     case_copy_overlapping_backward::<10>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
 }
 
-// /// cargo bench --bench=copies "Shift left"
-// fn bench_shift_left(c: &mut Criterion) {
-//     case_shift_left(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-//     case_shift_left(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
-// }
+/// cargo bench --bench=copies "Shift left"
+fn bench_shift_left(c: &mut Criterion) {
+    case_shift_left::<1>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_left::<1>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_left::<2>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_left::<2>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_left::<10>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_left::<10>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+}
+
+/// cargo bench --bench=copies "Shift right"
+fn bench_shift_right(c: &mut Criterion) {
+    case_shift_right::<1>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_right::<1>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_right::<2>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_right::<2>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+
+    case_shift_right::<10>(c, &[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]);
+    case_shift_right::<10>(c, &[1000, 25_000, 50_000, 75_000, 100_000]);
+}
 
 criterion_group! {
     name = benches;
@@ -280,7 +325,7 @@ criterion_group! {
                   PProfProfiler::new(100, Output::Flamegraph(None))
               );
 
-    targets = bench_copy_distance, bench_copy_overlapping_backward, bench_copy_overlapping_forward
+    targets = bench_copy_distance, bench_copy_overlapping_backward, bench_copy_overlapping_forward, bench_shift_left
 }
 
 criterion_main!(benches);
