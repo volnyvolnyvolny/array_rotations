@@ -309,8 +309,6 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
-
     use crate::*;
 
     fn seq(size: usize) -> Vec<usize> {

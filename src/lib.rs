@@ -65,14 +65,15 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
             } else {
                 let tmp = start.read();
 
-                copy_forward(mid, start, right);
+                shift_left(mid, right);
                 mid.add(right - 1).write(tmp);
             }
 
             return;
         } else if right == 1 {
             let tmp = mid.read();
-            copy_backward(start, start.add(1), left);
+
+            shift_right(start, left);
             start.write(tmp);
 
             return;
