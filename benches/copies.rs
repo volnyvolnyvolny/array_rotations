@@ -64,33 +64,35 @@ fn backward_test<T>(
 /// [ 1  2  1  2  3  4  7  8  9]
 ///         [:\\\\\\:]
 /// ```
-fn case_copy_forward<const count: usize>(c: &mut Criterion, count: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy forward/{count}"));
-    let mut v = seq::<count>(count * 2 + 1);
+fn case_copy_overlapping_forward<const count: usize>(
+    c: &mut Criterion,
+    len: usize,
+    distances: &[usize],
+) {
+    let mut group = c.benchmark_group(format!("Copy forward/{len}/{count}"));
+    let mut v = seq::<count>(len * 2 + 1);
 
     for d in distances {
         let start = *&v[..].as_mut_ptr();
 
-        group.bench_with_input(BenchmarkId::new("*utils::copy_forward", d), d, |b, _| {
-            b.iter(|| forward_test(copy_forward::<[usize; count]>, start, *d, count))
+        group.bench_with_input(BenchmarkId::new("utils::copy_forward (!)", d), d, |b, _| {
+            b.iter(|| forward_test(copy_forward::<[usize; count]>, start, *d, len))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::copy_backward", d), d, |b, _| {
-            b.iter(|| forward_test(copy_backward::<[usize; count]>, start, *d, count))
+            b.iter(|| forward_test(copy_backward::<[usize; count]>, start, *d, len))
         });
 
         group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping", d),
+            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
             d,
             |b, _d| {
-                b.iter(|| {
-                    forward_test(ptr::copy_nonoverlapping::<[usize; count]>, start, *d, count)
-                })
+                b.iter(|| forward_test(ptr::copy_nonoverlapping::<[usize; count]>, start, *d, len))
             },
         );
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _d| {
-            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, count))
+            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, len))
         });
     }
 
@@ -106,30 +108,35 @@ fn case_copy_forward<const count: usize>(c: &mut Criterion, count: usize, distan
 /// [ 1  2  1  2  3  4  7  8  9]
 ///            [://////:]
 /// ```
-fn case_copy_backward<const count: usize>(c: &mut Criterion, count: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy backward/{count}"));
-    let len = count * 2 + 1;
-    let mut v = seq::<count>(len);
+fn case_copy_overlapping_backward<const count: usize>(
+    c: &mut Criterion,
+    len: usize,
+    distances: &[usize],
+) {
+    let mut group = c.benchmark_group(format!("Copy backward/{len}/{count}"));
+    let mut v = seq::<count>(2 * len + 1);
 
     for d in distances {
-        let end = *unsafe { &v[..].as_mut_ptr().add(len) };
+        let end = *unsafe { &v[..].as_mut_ptr().add(2 * len + 1) };
 
         group.bench_with_input(BenchmarkId::new("utils::copy_forward", d), d, |b, _d| {
-            b.iter(|| backward_test(copy_forward::<[usize; count]>, end, *d, count))
-        });
-
-        group.bench_with_input(BenchmarkId::new("*utils::copy_backward", d), d, |b, _d| {
-            b.iter(|| backward_test(copy_backward::<[usize; count]>, end, *d, count))
+            b.iter(|| backward_test(copy_forward::<[usize; count]>, end, *d, len))
         });
 
         group.bench_with_input(
-            BenchmarkId::new("ptr::copy_nonoverlapping", d),
+            BenchmarkId::new("utils::copy_backward (!)", d),
             d,
-            |b, _d| b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, *d, count)),
+            |b, _d| b.iter(|| backward_test(copy_backward::<[usize; count]>, end, *d, len)),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
+            d,
+            |b, _d| b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, *d, len)),
         );
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _d| {
-            b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, *d, count))
+            b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, *d, len))
         });
     }
 
@@ -185,10 +192,10 @@ fn case_copy_backward<const count: usize>(c: &mut Criterion, count: usize, dista
 /// [ 1  2  1  2  3  4  7  8  9]
 ///            [://////:]
 /// ```
-fn case_copy_distance<const count: usize>(c: &mut Criterion, count: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy distances/{count}"));
+fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Copy distances/{len}/{count}"));
     let max_distance = distances.iter().max().unwrap();
-    let mut v = seq(count + max_distance);
+    let mut v = seq(len + max_distance);
 
     for d in distances {
         let start = *&v[..].as_mut_ptr();
@@ -200,7 +207,7 @@ fn case_copy_distance<const count: usize>(c: &mut Criterion, count: usize, dista
             b.iter(|| backward_test(copy_backward::<[usize; count]>, start, *d, count))
         });
         group.bench_with_input(
-            BenchmarkId::new("*ptr::copy_nonoverlapping", d),
+            BenchmarkId::new("ptr::copy_nonoverlapping (!)", d),
             d,
             |b, _| {
                 b.iter(|| {
@@ -232,27 +239,27 @@ fn bench_copy_distance(c: &mut Criterion) {
 }
 
 /// cargo bench --bench=copies "Copy forward"
-fn bench_copy_forward(c: &mut Criterion) {
-    case_copy_forward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward::<1>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+fn bench_copy_overlapping_forward(c: &mut Criterion) {
+    case_copy_overlapping_forward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_forward::<1>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 
-    case_copy_forward::<2>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward::<2>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+    case_copy_overlapping_forward::<2>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_forward::<2>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 
-    case_copy_forward::<10>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_forward::<10>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+    case_copy_overlapping_forward::<10>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_forward::<10>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
 /// cargo bench --bench=copies "Copy backward"
-fn bench_copy_backward(c: &mut Criterion) {
-    case_copy_backward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_backward::<1>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
+fn bench_copy_overlapping_backward(c: &mut Criterion) {
+    case_copy_overlapping_backward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_backward::<1>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
 
-    case_copy_backward::<2>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_backward::<2>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
+    case_copy_overlapping_backward::<2>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_backward::<2>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
 
-    case_copy_backward::<10>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_copy_backward::<10>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
+    case_copy_overlapping_backward::<10>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy_overlapping_backward::<10>(c, 100_000, &[0, 1000, 25_000, 50_000, 75_000, 100_000]);
 }
 
 // /// cargo bench --bench=copies "Shift left"
@@ -271,7 +278,7 @@ criterion_group! {
                   PProfProfiler::new(100, Output::Flamegraph(None))
               );
 
-    targets = bench_copy_distance, bench_copy_backward, bench_copy_forward
+    targets = bench_copy_distance, bench_copy_overlapping_backward, bench_copy_overlapping_forward
 }
 
 criterion_main!(benches);
