@@ -325,7 +325,7 @@ criterion_group! {
                   PProfProfiler::new(100, Output::Flamegraph(None))
               );
 
-    targets = bench_copy_distance, bench_copy_overlapping_backward, bench_copy_overlapping_forward, bench_shift_left
+    targets = bench_copy_distance, bench_copy_overlapping_backward, bench_copy_overlapping_forward, bench_shift_left, bench_shift_right
 }
 
 criterion_main!(benches);
