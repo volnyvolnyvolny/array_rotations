@@ -273,15 +273,15 @@ fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
         });
 
         group.bench_with_input(BenchmarkId::new("ptr_contrev_rotate", l), l, |b, _l| {
-            b.iter(|| unsafe { ptr_contrev_rotate::<[usize; count]>(*l, start, 1) })
+            b.iter(|| unsafe { ptr_contrev_rotate::<[usize; count]>(*l, start.add(*l), 1) })
         });
 
         group.bench_with_input(BenchmarkId::new("ptr_reversal_rotate", l), l, |b, _l| {
-            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(*l, start, 1) })
+            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(*l, start.add(*l), 1) })
         });
 
         group.bench_with_input(BenchmarkId::new("ptr_direct_rotate", l), l, |b, _l| {
-            b.iter(|| unsafe { ptr_direct_rotate::<[usize; count]>(*l, start, 1) })
+            b.iter(|| unsafe { ptr_direct_rotate::<[usize; count]>(*l, start.add(*l), 1) })
         });
     }
 
