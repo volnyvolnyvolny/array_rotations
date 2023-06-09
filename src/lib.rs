@@ -28,7 +28,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO↓FTWARE.
 
 use std::mem::MaybeUninit;
 //use std::mem::SizedTypeProperties;
-use std::mem::size_of;
 
 use std::cmp;
 
@@ -50,7 +49,7 @@ pub use gm::*;
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
-/// This case is optimized for the situation when `left = 1` or `right = 1`.
+/// This case is optimized for the `left = 1` or `right = 1` situation.
 ///
 /// ## Safety
 ///
@@ -58,28 +57,23 @@ pub use gm::*;
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let start = mid.sub(left);
 
-    if size_of::<T>() < 18 * size_of::<usize>() {
-        if left == 1 {
-            if right == 1 {
-                ptr::swap(start, mid);
-            } else {
-                let tmp = start.read();
+    if left == 1 {
+        if right == 1 {
+            ptr::swap(start, mid);
+        } else {
+            let tmp = start.read();
 
-                shift_left(mid, right);
-                mid.add(right - 1).write(tmp);
-            }
-
-            return;
-        } else if right == 1 {
-            let tmp = mid.read();
-
-            shift_right(start, left);
-            start.write(tmp);
-
-            return;
+            shift_left(mid, right);
+            mid.add(right - 1).write(tmp);
         }
-    } else {
-        ptr_contrev_rotate::<T>(left, mid, right);
+
+        return;
+    } else if right == 1 {
+        let tmp = mid.read();
+
+        shift_right(start, left);
+        start.write(tmp);
+
         return;
     }
 
@@ -398,7 +392,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    if (right == 1) || (left == 1) {
+    if (left == 1) || (right == 1) {
         ptr_edge_rotate(left, mid, right);
         return;
     }
