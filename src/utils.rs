@@ -188,34 +188,6 @@ pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
     }
 }
 
-/// # Shift right (forward, naive)
-///
-/// Shift region `[src, src + count)` to `[src + 1, src + 1 + count)`, moving right-to-left.
-///
-/// ## Safety
-///
-/// * The region `[src + 1, src + 1 + count)` must be valid for writing;
-/// * the region `[src    , src     + count)` must be valid for reading.
-///
-/// ## Example
-///
-/// ```text
-///            src>> count = 7
-/// [ 1  2  3 *4 :5  6  7  8  9 10 11 12 13 14 15]
-///            └─────────────────┘
-/// [ 1  2  3 *4 :4  5  6  7  8  9 10 12  .  . 15]
-/// ```
-pub unsafe fn shift_right_naive<T>(arr: *mut T, count: usize) {
-    let arr = arr.cast::<MaybeUninit<T>>();
-
-    for i in (0..count).rev() {
-        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
-        let src = unsafe { arr.add(i) };
-
-        ptr::write(src.add(1), ptr::read(src));
-    }
-}
-
 /// # Shift right (forward)
 ///
 /// Shift region `[src, src + count)` to `[src + 1, src + 1 + count)`, moving right-to-left.
@@ -234,10 +206,13 @@ pub unsafe fn shift_right_naive<T>(arr: *mut T, count: usize) {
 /// [ 1  2  3 *4 :4  5  6  7  8  9 10 12  .  . 15]
 /// ```
 pub unsafe fn shift_right<T>(arr: *mut T, count: usize) {
-    if size_of::<T>() < 18 * size_of::<usize>() {
-        shift_right_naive(arr, count);
-    } else {
-        ptr::copy(arr, arr.add(1), count);
+    let arr = arr.cast::<MaybeUninit<T>>();
+
+    for i in (0..count).rev() {
+        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+        let src = unsafe { arr.add(i) };
+
+        ptr::write(src.add(1), ptr::read(src));
     }
 }
 
