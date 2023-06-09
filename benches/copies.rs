@@ -262,12 +262,6 @@ fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
             b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, 1, *l))
         });
 
-        group.bench_with_input(
-            BenchmarkId::new("utils::shift_right (naive)", l),
-            l,
-            |b, _l| b.iter(|| unsafe { shift_right_naive::<[usize; count]>(start, *l) }),
-        );
-
         group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
             b.iter(|| unsafe { shift_right::<[usize; count]>(start, *l) })
         });
