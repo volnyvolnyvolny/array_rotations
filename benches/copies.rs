@@ -211,6 +211,12 @@ fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
             b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, 1, *l))
         });
 
+        group.bench_with_input(
+            BenchmarkId::new("utils::shift_left (naive)", l),
+            l,
+            |b, _l| b.iter(|| unsafe { shift_left_naive::<[usize; count]>(start.add(1), *l) }),
+        );
+
         group.bench_with_input(BenchmarkId::new("utils::shift_left", l), l, |b, _l| {
             b.iter(|| unsafe { shift_left::<[usize; count]>(start.add(1), *l) })
         });
@@ -255,6 +261,12 @@ fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
         group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
             b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, 1, *l))
         });
+
+        group.bench_with_input(
+            BenchmarkId::new("utils::shift_right (naive)", l),
+            l,
+            |b, _l| b.iter(|| unsafe { shift_right_naive::<[usize; count]>(start, *l) }),
+        );
 
         group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
             b.iter(|| unsafe { shift_right::<[usize; count]>(start, *l) })

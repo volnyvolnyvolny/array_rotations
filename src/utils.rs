@@ -23,6 +23,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+use std::mem::size_of;
 use std::mem::MaybeUninit;
 use std::ptr;
 use std::slice;
@@ -134,6 +135,34 @@ pub unsafe fn copy_forward<T>(src: *const T, dst: *mut T, count: usize) {
     }
 }
 
+/// # Shift left (backward, naive)
+///
+/// Shift region `[src, src + count)` to `[src - 1, src - 1 + count)`, moving left-to-right.
+///
+/// ## Safety
+///
+/// * The region `[src - 1, src - 1 + count)` must be valid for writing;
+/// * the region `[src    , src     + count)` must be valid for reading.
+///
+/// ## Example
+///
+/// ```text
+///          <<src  count = 7
+/// [ 1  2 :3 *4  5  6  7  8  9 10 11 12 13 14 15]
+///            └─────────────────┘
+/// [ 1  2 :4 *5  6  7  8  9 10 10 11  .  .  . 15]
+/// ```
+pub unsafe fn shift_left_naive<T>(arr: *mut T, count: usize) {
+    let arr = arr.cast::<MaybeUninit<T>>();
+
+    for i in 0..count {
+        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+        let src = unsafe { arr.add(i) };
+
+        ptr::write(src.sub(1), ptr::read(src));
+    }
+}
+
 /// # Shift left (backward)
 ///
 /// Shift region `[src, src + count)` to `[src - 1, src - 1 + count)`, moving left-to-right.
@@ -152,13 +181,38 @@ pub unsafe fn copy_forward<T>(src: *const T, dst: *mut T, count: usize) {
 /// [ 1  2 :4 *5  6  7  8  9 10 10 11  .  .  . 15]
 /// ```
 pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
+    if size_of::<T>() < 18 * size_of::<usize>() {
+        shift_left_naive(arr, count);
+    } else {
+        ptr::copy(arr, arr.sub(1), count);
+    }
+}
+
+/// # Shift right (forward, naive)
+///
+/// Shift region `[src, src + count)` to `[src + 1, src + 1 + count)`, moving right-to-left.
+///
+/// ## Safety
+///
+/// * The region `[src + 1, src + 1 + count)` must be valid for writing;
+/// * the region `[src    , src     + count)` must be valid for reading.
+///
+/// ## Example
+///
+/// ```text
+///            src>> count = 7
+/// [ 1  2  3 *4 :5  6  7  8  9 10 11 12 13 14 15]
+///            └─────────────────┘
+/// [ 1  2  3 *4 :4  5  6  7  8  9 10 12  .  . 15]
+/// ```
+pub unsafe fn shift_right_naive<T>(arr: *mut T, count: usize) {
     let arr = arr.cast::<MaybeUninit<T>>();
 
-    for i in 0..count {
+    for i in (0..count).rev() {
         // SAFETY: By precondition, `i` is in-bounds because it's below `count`
         let src = unsafe { arr.add(i) };
 
-        ptr::write(src.sub(1), ptr::read(src));
+        ptr::write(src.add(1), ptr::read(src));
     }
 }
 
@@ -180,13 +234,10 @@ pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
 /// [ 1  2  3 *4 :4  5  6  7  8  9 10 12  .  . 15]
 /// ```
 pub unsafe fn shift_right<T>(arr: *mut T, count: usize) {
-    let arr = arr.cast::<MaybeUninit<T>>();
-
-    for i in (0..count).rev() {
-        // SAFETY: By precondition, `i` is in-bounds because it's below `count`
-        let src = unsafe { arr.add(i) };
-
-        ptr::write(src.add(1), ptr::read(src));
+    if size_of::<T>() < 18 * size_of::<usize>() {
+        shift_right_naive(arr, count);
+    } else {
+        ptr::copy(arr, arr.add(1), count);
     }
 }
 
@@ -311,6 +362,14 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
 mod tests {
     use crate::*;
 
+    fn seq_multi<const count: usize>(size: usize) -> Vec<[usize; count]> {
+        let mut v = vec![[0; count]; size];
+        for i in 0..size {
+            v[i] = [i + 1; count];
+        }
+        v
+    }
+
     fn seq(size: usize) -> Vec<usize> {
         let mut v = vec![0; size];
         for i in 0..size {
@@ -395,6 +454,19 @@ mod tests {
         unsafe { shift_left(src, 7) };
 
         assert_eq!(v, vec![1, 4, 5, 6, 7, 8, 9, 10, 10, 10, 11, 12, 13, 14, 15]);
+
+        v = seq(15);
+        let mut src = *unsafe { &v[..].as_mut_ptr().add(3) };
+
+        unsafe { shift_left_naive(src, 7) };
+
+        assert_eq!(v, vec![1, 2, 4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15]);
+
+        src = *unsafe { &v[..].as_mut_ptr().add(2) };
+
+        unsafe { shift_left_naive(src, 7) };
+
+        assert_eq!(v, vec![1, 4, 5, 6, 7, 8, 9, 10, 10, 10, 11, 12, 13, 14, 15]);
     }
 
     #[test]
@@ -411,6 +483,22 @@ mod tests {
         unsafe { shift_right(src, 7) };
 
         assert_eq!(v, vec![1, 2, 3, 4, 4, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15]);
+    }
+
+    #[test]
+    fn shift_correct() {
+        let mut v = seq_multi::<20>(15);
+        let mut src = *unsafe { &v[..].as_mut_ptr().add(1) };
+
+        unsafe { shift_left(src, 14) };
+
+        assert_eq!(v[0..13], seq_multi::<20>(14)[1..14]);
+
+        v = seq_multi::<20>(15);
+        src = *&v[..].as_mut_ptr();
+
+        unsafe { shift_right(src, 14) };
+        assert_eq!(v[1..14], seq_multi::<20>(14)[0..13]);
     }
 
     // Swaps:
