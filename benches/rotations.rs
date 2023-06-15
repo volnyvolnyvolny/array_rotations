@@ -38,17 +38,18 @@ enum Rotation {
     Aux,
     NaiveAux,
     Bridge,
-    GenContrev,
+    Contrev,
+    ContrevB,
     Piston,
     GM,
     GMRec,
-    Contrev,
     Helix,
     Drill,
     Grail,
     Edge,
     Stable,
     Rev,
+    RevB,
 }
 
 fn case<const count: usize>(
@@ -84,6 +85,18 @@ fn case<const count: usize>(
                 Contrev => {
                     group.bench_with_input(BenchmarkId::new("Contrev", l), l, |b, _| {
                         b.iter(|| test(ptr_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                ContrevB => {
+                    group.bench_with_input(BenchmarkId::new("ContrevB", l), l, |b, _| {
+                        b.iter(|| {
+                            test(
+                                ptr_block_contrev_rotate::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                            )
+                        })
                     });
                 }
                 GM => {
@@ -151,13 +164,13 @@ fn case<const count: usize>(
                         });
                     };
                 }
-                GenContrev => {
-                    group.bench_with_input(BenchmarkId::new("GenContrev", l), l, |b, _| {
-                        b.iter(|| test(ptr_gen_contrev_rotate::<[usize; count]>, l.clone(), mid, r))
-                    });
-                }
                 Rev => {
                     group.bench_with_input(BenchmarkId::new("Rev", l), l, |b, _| {
+                        b.iter(|| test(ptr_reversal_rotate::<[usize; count]>, l.clone(), mid, r))
+                    });
+                }
+                RevB => {
+                    group.bench_with_input(BenchmarkId::new("RevB", l), l, |b, _| {
                         b.iter(|| test(ptr_reversal_rotate::<[usize; count]>, l.clone(), mid, r))
                     });
                 }
@@ -198,6 +211,12 @@ fn case_buf<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) 
     case::<count>("Buf", c, length, ls, vec![Direct, NaiveAux, Aux, Bridge]);
 }
 
+fn case_rev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
+    use Rotation::*;
+
+    case::<count>("Rev", c, length, ls, vec![Direct, Rev, RevB, Bridge, Aux]);
+}
+
 fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
     use Rotation::*;
 
@@ -206,7 +225,7 @@ fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usiz
         c,
         length,
         ls,
-        vec![Direct, Contrev, GenContrev, Bridge, Aux],
+        vec![Direct, Contrev, ContrevB, Bridge, Aux],
     );
 }
 
@@ -365,6 +384,64 @@ fn bench_contrev(c: &mut Criterion) {
     );
 }
 
+fn bench_rev(c: &mut Criterion) {
+    // 1 * usize
+    case_rev::<1>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_rev::<1>(c, 30, &[1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 29]);
+
+    case_rev::<1>(c, 100, &[1, 20, 32, 35, 40, 45, 51, 60, 66, 69, 80, 90, 99]);
+    case_rev::<1>(
+        c,
+        1000,
+        &[1, 32, 200, 334, 400, 485, 516, 668, 800, 900, 969, 999],
+    );
+    case_rev::<1>(
+        c,
+        10000,
+        &[
+            1, 32, 2000, 3334, 4000, 4985, 5016, 6668, 8000, 9000, 9969, 9999,
+        ],
+    );
+
+    // 2 * usize, possible buffer size = 16 elements of 2 * usize
+    case_rev::<2>(c, 6, &[1, 2, 3, 4, 5]);
+
+    case_rev::<2>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_rev::<2>(c, 30, &[1, 3, 6, 10, 13, 16, 18, 22, 25, 27, 29]);
+    case_rev::<2>(c, 100, &[1, 16, 20, 30, 40, 48, 53, 60, 70, 80, 85, 99]);
+    case_rev::<2>(
+        c,
+        1000,
+        &[1, 16, 200, 334, 400, 498, 503, 668, 800, 900, 985, 999],
+    );
+    case_rev::<2>(
+        c,
+        10000,
+        &[
+            1, 16, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9985, 9999,
+        ],
+    );
+
+    // 5 * usize, possible buffer size = 6 elements of 5 * usize
+    case_rev::<5>(c, 6, &[1, 2, 3, 4, 5]);
+
+    case_rev::<5>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    case_rev::<5>(c, 30, &[1, 3, 6, 10, 13, 16, 18, 22, 25, 27, 29]);
+    case_rev::<5>(c, 100, &[1, 6, 20, 30, 40, 48, 53, 60, 70, 80, 90, 95, 99]);
+    case_rev::<5>(
+        c,
+        1000,
+        &[1, 6, 200, 334, 400, 498, 503, 668, 800, 900, 995, 999],
+    );
+    case_rev::<5>(
+        c,
+        10000,
+        &[
+            1, 6, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9995, 9999,
+        ],
+    );
+}
+
 fn bench_gm(c: &mut Criterion) {
     // 1 * usize
     case_gm::<1>(c, 15, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
@@ -433,7 +510,7 @@ criterion_group! {
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
 
-    targets = bench_ends, bench_buf, bench_contrev, bench_gm, bench_short
+    targets = bench_ends, bench_buf, bench_contrev, bench_rev, bench_gm, bench_short
 }
 
 criterion_main!(benches);

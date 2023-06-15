@@ -80,7 +80,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     ptr_direct_rotate::<T>(left, mid, right); // fallback
 }
 
-/// # GenContrev (Generalized conjoined triple reversal) rotation
+/// # ContrevB (Generalized conjoined triple reversal) rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
 /// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
@@ -95,8 +95,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// It is the generalization of the Contrev rotation. Instead of moving separate elements we move
 /// blocks of elements.
 ///
-/// In the situation when `gcd(left, right) = 1`
-/// it became the usual Contrev.
+/// When `gcd(left, right) = 1` it became the usual Contrev.
 ///
 /// ## Example
 ///
@@ -177,7 +176,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 ///               ↓  ↓  ↓  ↓  ↓  ↓  ↓
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
-pub unsafe fn ptr_gen_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
+pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // if T::IS_ZST {
     // return;
     // }
@@ -186,73 +185,77 @@ pub unsafe fn ptr_gen_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) 
         return;
     }
 
-    let gcd = gcd::binary_usize(left, right);
-
     if left == right {
         ptr::swap_nonoverlapping(mid, mid.sub(left), right);
     } else {
-        let (mut ls, mut le) = (mid.sub(left), mid.sub(gcd));
-        let (mut rs, mut re) = (mid, mid.add(right).sub(gcd));
+        let block_size = gcd::binary_usize(left, right);
 
-        let half_min = cmp::min(left, right) / gcd / 2;
-        let half_max = cmp::max(left, right) / gcd / 2;
+        if block_size == 1 {
+            ptr_contrev_rotate(left, mid, right);
+        } else {
+            let (mut ls, mut le) = (mid.sub(left), mid.sub(block_size));
+            let (mut rs, mut re) = (mid, mid.add(right).sub(block_size));
 
-        for _ in 0..half_min {
-            // Permutation (ls, le, re, rs)
-            for _ in 0..gcd {
-                ls.write(rs.replace(re.replace(le.replace(ls.read()))));
+            let half_min = cmp::min(left, right) / block_size / 2;
+            let half_max = cmp::max(left, right) / block_size / 2;
 
-                ls = ls.add(1);
-                le = le.add(1);
-                rs = rs.add(1);
-                re = re.add(1);
-            }
-
-            le = le.sub(2 * gcd);
-            re = re.sub(2 * gcd);
-        }
-
-        if left > right {
-            for _ in 0..half_max - half_min {
-                // (ls, le, re)
-                for _ in 0..gcd {
-                    ls.write(re.replace(le.replace(ls.read())));
+            for _ in 0..half_min {
+                // Permutation (ls, le, re, rs)
+                for _ in 0..block_size {
+                    ls.write(rs.replace(re.replace(le.replace(ls.read()))));
 
                     ls = ls.add(1);
                     le = le.add(1);
-                    re = re.add(1);
-                }
-
-                le = le.sub(2 * gcd);
-                re = re.sub(2 * gcd);
-            }
-        } else {
-            for _ in 0..half_max - half_min {
-                // (rs, re, ls)
-                for _ in 0..gcd {
-                    ls.write(rs.replace(re.replace(ls.read())));
-
-                    ls = ls.add(1);
                     rs = rs.add(1);
                     re = re.add(1);
                 }
 
-                re = re.sub(2 * gcd);
-            }
-        }
-
-        let center = (re.offset_from(ls).abs() / 2) as usize / gcd;
-
-        for _ in 0..center {
-            for _ in 0..gcd {
-                // (re, ls)
-                ls.write(re.replace(ls.read()));
-
-                ls = ls.add(1);
-                re = re.add(1);
+                le = le.sub(2 * block_size);
+                re = re.sub(2 * block_size);
             }
 
-            re = re.sub(2 * gcd);
+            if left > right {
+                for _ in 0..half_max - half_min {
+                    // (ls, le, re)
+                    for _ in 0..block_size {
+                        ls.write(re.replace(le.replace(ls.read())));
+
+                        ls = ls.add(1);
+                        le = le.add(1);
+                        re = re.add(1);
+                    }
+
+                    le = le.sub(2 * block_size);
+                    re = re.sub(2 * block_size);
+                }
+            } else {
+                for _ in 0..half_max - half_min {
+                    // (rs, re, ls)
+                    for _ in 0..block_size {
+                        ls.write(rs.replace(re.replace(ls.read())));
+
+                        ls = ls.add(1);
+                        rs = rs.add(1);
+                        re = re.add(1);
+                    }
+
+                    re = re.sub(2 * block_size);
+                }
+            }
+
+            let center = (re.offset_from(ls).abs() / 2) as usize / block_size;
+
+            for _ in 0..center {
+                for _ in 0..block_size {
+                    // (re, ls)
+                    ls.write(re.replace(ls.read()));
+
+                    ls = ls.add(1);
+                    re = re.add(1);
+                }
+
+                re = re.sub(2 * block_size);
+            }
         }
     }
 }
@@ -318,9 +321,63 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-        let slice = slice::from_raw_parts_mut(p, size);
-        slice.reverse();
+    let start = mid.sub(left);
+
+    if left == right {
+        ptr::swap_nonoverlapping(mid, start, left);
+    } else {
+        unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
+            let slice = slice::from_raw_parts_mut(p, size);
+            slice.reverse();
+        }
+
+        reverse_slice(start, left);
+        reverse_slice(mid, right);
+        reverse_slice(start, left + right);
+    }
+}
+
+/// # Triple block reversal rotation
+///
+/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
+/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
+/// right.
+///
+/// ## Algorithm
+///
+/// 0. Block size = GCD(left, right);
+/// 1. Reverse blocks of l-side;
+/// 2. reverse blocks of r-side;
+/// 3. revere all blocks.
+///
+/// "This is an easy and reliable way to rotate in-place. You reverse the
+/// left side, next you reverse the right side, next you reverse the entire
+/// array. Upon completion the left and right block will be swapped."
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///                            mid
+///        left = 9            |    right = 6
+/// [ 1  2  3  4  5  6 :7  8  9* a  b  c  d  e  f]  // reverse left side blocks
+///   ↓        ↓        ↓
+/// [ 7  .  9  4  .  6  1 ~~~ 3  a  .  c  d  .  f]  // reverse right side blocks
+///                              ↓        ↓
+/// [ 7  .  9  4  .  6  1 ~~~ 3  d  .  f  a  .  c]  // reverse all blocks
+///   ↓        ↓                 ↓        ↓
+/// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9]
+/// ```
+pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
+    // if T::IS_ZST {
+    // return;
+    // }
+
+    if (right == 0) || (left == 0) {
+        return;
     }
 
     let start = mid.sub(left);
@@ -328,9 +385,26 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     if left == right {
         ptr::swap_nonoverlapping(mid, start, left);
     } else {
-        reverse_slice(start, left);
-        reverse_slice(mid, right);
-        reverse_slice(start, left + right);
+        let block_size = gcd::binary_usize(left, right);
+
+        if block_size == 1 {
+            ptr_reversal_rotate(left, mid, right);
+        } else {
+            unsafe fn reverse<T>(p: *mut T, count: usize, block_size: usize) {
+                let mut start = p;
+                let mut end = p.add((count - 1) * block_size);
+
+                for _ in 0..count / 2 {
+                    ptr::swap_nonoverlapping(start, end, block_size);
+                    start = start.add(block_size);
+                    end = end.sub(block_size);
+                }
+            }
+
+            reverse(start, left / block_size, block_size);
+            reverse(mid, right / block_size, block_size);
+            reverse(start, (left + right) / block_size, block_size);
+        }
     }
 }
 
@@ -1381,6 +1455,11 @@ mod tests {
     }
 
     #[test]
+    fn ptr_block_reversal_rotate_correct() {
+        test_correct(ptr_block_reversal_rotate::<usize>);
+    }
+
+    #[test]
     fn ptr_piston_rotate_rec_correct() {
         test_correct(ptr_piston_rotate_rec::<usize>);
     }
@@ -1397,7 +1476,7 @@ mod tests {
 
     #[test]
     fn ptr_gen_contrev_rotate_correct() {
-        test_correct(ptr_gen_contrev_rotate::<usize>);
+        test_correct(ptr_block_contrev_rotate::<usize>);
     }
 
     #[test]
