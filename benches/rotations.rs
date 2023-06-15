@@ -171,7 +171,14 @@ fn case<const count: usize>(
                 }
                 RevB => {
                     group.bench_with_input(BenchmarkId::new("RevB", l), l, |b, _| {
-                        b.iter(|| test(ptr_reversal_rotate::<[usize; count]>, l.clone(), mid, r))
+                        b.iter(|| {
+                            test(
+                                ptr_block_reversal_rotate::<[usize; count]>,
+                                l.clone(),
+                                mid,
+                                r,
+                            )
+                        })
                     });
                 }
                 Piston => {
