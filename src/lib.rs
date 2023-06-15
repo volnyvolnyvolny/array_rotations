@@ -55,11 +55,11 @@ pub use gm::*;
 ///
 /// The specified range must be valid for reading and writing.
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    let start = mid.sub(left);
-
-    if (left == 0) || (right == 0) {
+    if left == 0 || right == 0 {
         return;
     }
+
+    let start = mid.sub(left);
 
     if left == 1 {
         if right == 1 {
@@ -81,7 +81,8 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
-    ptr_direct_rotate::<T>(left, mid, right); // fallback
+    // fallback
+    ptr_direct_rotate::<T>(left, mid, right);
 }
 
 /// # ContrevB (Generalized conjoined triple reversal) rotation
@@ -322,7 +323,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    if (right <= 1) || (left <= 1) {
+    if right <= 1 || left <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -383,7 +384,7 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
     // return;
     // }
 
-    if (right <= 1) || (left <= 1) {
+    if right <= 1 || left <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -475,7 +476,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     //     return;
     // }
 
-    if (left <= 1) || (right <= 1) {
+    if left <= 1 || right <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -565,8 +566,7 @@ pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usiz
         }
     }
 
-    if left > 0 && right > 0 {
-        // left = 0, 1; right = 0, 1
+    if left == 1 || right == 1 {
         ptr_edge_rotate(left, mid, right);
     }
 }
@@ -660,8 +660,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
     }
 
-    if left > 0 && right > 0 {
-        // left = 0, 1; right = 0, 1
+    if left == 1 || right == 1 {
         ptr_edge_rotate(left, mid, right);
     }
 }
@@ -755,64 +754,60 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
         return;
     }
 
+    let start = mid.sub(left);
+
+    // beginning of first round
+    let mut tmp: T = start.read();
+    let mut i = right;
+
+    // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
+    // but it is faster to do one loop which calculates the gcd as a side effect, then
+    // doing the rest of the chunk
+    let mut gcd = right;
+
+    // benchmarks reveal that it is faster to swap temporaries all the way through instead
+    // of reading one temporary once, copying backwards, and then writing that temporary at
+    // the very end. This is possibly due to the fact that swapping or replacing temporaries
+    // uses only one memory address in the loop instead of needing to manage two.
     loop {
-        let start = mid.sub(left);
+        tmp = start.add(i).replace(tmp);
 
-        // beginning of first round
-        let mut tmp: T = start.read();
-        let mut i = right;
+        // instead of incrementing `i` and then checking if it is outside the bounds, we
+        // check if `i` will go outside the bounds on the next increment. This prevents
+        // any wrapping of pointers or `usize`.
+        if i >= left {
+            i -= left;
+            if i == 0 {
+                // end of first round
+                start.write(tmp);
+                break;
+            }
+            // this conditional must be here if `left + right >= 15`
+            if i < gcd {
+                gcd = i;
+            }
+        } else {
+            i += right;
+        }
+    }
 
-        // `gcd` can be found before hand by calculating `gcd(left + right, right)`,
-        // but it is faster to do one loop which calculates the gcd as a side effect, then
-        // doing the rest of the chunk
-        let mut gcd = right;
+    // finish the chunk with more rounds
+    for s in 1..gcd {
+        tmp = start.add(s).read();
+        i = s + right;
 
-        // benchmarks reveal that it is faster to swap temporaries all the way through instead
-        // of reading one temporary once, copying backwards, and then writing that temporary at
-        // the very end. This is possibly due to the fact that swapping or replacing temporaries
-        // uses only one memory address in the loop instead of needing to manage two.
         loop {
             tmp = start.add(i).replace(tmp);
-
-            // instead of incrementing `i` and then checking if it is outside the bounds, we
-            // check if `i` will go outside the bounds on the next increment. This prevents
-            // any wrapping of pointers or `usize`.
             if i >= left {
                 i -= left;
-                if i == 0 {
-                    // end of first round
-                    start.write(tmp);
+                if i == s {
+                    start.add(s).write(tmp);
                     break;
-                }
-                // this conditional must be here if `left + right >= 15`
-                if i < gcd {
-                    gcd = i;
                 }
             } else {
                 i += right;
             }
         }
-
-        // finish the chunk with more rounds
-        for s in 1..gcd {
-            tmp = start.add(s).read();
-            i = s + right;
-
-            loop {
-                tmp = start.add(i).replace(tmp);
-                if i >= left {
-                    i -= left;
-                    if i == s {
-                        start.add(s).write(tmp);
-                        break;
-                    }
-                } else {
-                    i += right;
-                }
-            }
-        }
-
-        return;
     }
 }
 
@@ -971,7 +966,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
         // re = re.sub(1);
         // }
 
-        let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).abs() as usize + 1);
+        let center = slice::from_raw_parts_mut(ls, re.offset_from(ls).unsigned_abs() + 1);
         center.reverse();
     }
 }
