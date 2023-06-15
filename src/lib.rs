@@ -57,6 +57,10 @@ pub use gm::*;
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     let start = mid.sub(left);
 
+    if (left == 0) || (right == 0) {
+        return;
+    }
+
     if left == 1 {
         if right == 1 {
             ptr::swap(start, mid);
@@ -181,7 +185,8 @@ pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize
     // return;
     // }
 
-    if left == 0 || right == 0 {
+    if left <= 1 || right <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -317,7 +322,8 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    if (right == 0) || (left == 0) {
+    if (right <= 1) || (left <= 1) {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -326,6 +332,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     if left == right {
         ptr::swap_nonoverlapping(mid, start, left);
     } else {
+        #[inline(always)]
         unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
             let slice = slice::from_raw_parts_mut(p, size);
             slice.reverse();
@@ -376,7 +383,8 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
     // return;
     // }
 
-    if (right == 0) || (left == 0) {
+    if (right <= 1) || (left <= 1) {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -390,6 +398,7 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
         if block_size == 1 {
             ptr_reversal_rotate(left, mid, right);
         } else {
+            #[inline(always)]
             unsafe fn reverse<T>(p: *mut T, count: usize, block_size: usize) {
                 let mut start = p;
                 let mut end = p.add((count - 1) * block_size);
@@ -462,11 +471,11 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
     // return;
     // }
 
-    if (right == 0) || (left == 0) {
-        return;
-    }
+    // if (right == 0) || (left == 0) {
+    //     return;
+    // }
 
-    if (left == 1) || (right == 1) {
+    if (left <= 1) || (right <= 1) {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -621,10 +630,6 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     // if T::IS_ZST {
     // return;
     // }
-
-    if (right == 0) || (left == 0) {
-        return;
-    }
 
     let mut start = mid.sub(left);
     let mut end = mid.add(right);

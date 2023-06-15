@@ -517,7 +517,7 @@ criterion_group! {
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
 
-    targets = /*bench_ends,*/ bench_buf, bench_contrev, bench_rev, bench_gm, bench_short
+    targets = bench_buf, bench_contrev, bench_rev, bench_gm, bench_short, bench_ends
 }
 
 criterion_main!(benches);
