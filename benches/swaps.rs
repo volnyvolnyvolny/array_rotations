@@ -1,15 +1,15 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use pprof::criterion::{Output, PProfProfiler};
+// use pprof::criterion::{Output, PProfProfiler};
 
-use rust_rotates::utils::*;
+use rust_rotations::utils::*;
 
 // use std::time::Duration;
 use std::ptr;
 
-fn seq(size: usize) -> Vec<usize> {
-    let mut v = vec![0; size];
+fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
+    let mut v = vec![[0; count]; size];
     for i in 0..size {
-        v[i] = i + 1;
+        v[i] = [i + 1; count];
     }
     v
 }
@@ -64,23 +64,27 @@ fn backward_test<T>(
 /// [ 1  2  1  2  3  4  7  8  9]
 ///         [:\\\\\\:]
 /// ```
-fn case_swap_forward(c: &mut Criterion, count: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Swap forward/{count}"));
-    let mut v = seq(count * 2 + 1);
+fn case_swap_forward<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Swap forward/{len}/{count}"));
+    let mut v = seq::<count>(len * 2 + 1);
 
     for d in distances {
-        let start = &v[..].as_mut_ptr();
+        let start = *&v[..].as_mut_ptr();
 
-        group.bench_with_input(BenchmarkId::new("*utils::swap_forward", d), d, |b, _| {
-            b.iter(|| forward_test(swap_forward::<usize>, *start, *d, count))
+        group.bench_with_input(BenchmarkId::new("utils::swap_forward (!)", d), d, |b, _| {
+            b.iter(|| forward_test(swap_forward::<[usize; count]>, start, *d, len))
         });
+
         group.bench_with_input(BenchmarkId::new("utils::swap_backward", d), d, |b, _| {
-            b.iter(|| forward_test(swap_backward::<usize>, *start, *d, count))
+            b.iter(|| forward_test(swap_backward::<[usize; count]>, start, *d, len))
         });
+
         group.bench_with_input(
             BenchmarkId::new("ptr::swap_nonoverlapping", d),
             d,
-            |b, _d| b.iter(|| forward_test(ptr::swap_nonoverlapping::<usize>, *start, *d, count)),
+            |b, _d| {
+                b.iter(|| forward_test(ptr::swap_nonoverlapping::<[usize; count]>, start, *d, len))
+            },
         );
     }
 
@@ -96,51 +100,73 @@ fn case_swap_forward(c: &mut Criterion, count: usize, distances: &[usize]) {
 /// [ 1  2  1  2  3  4  7  8  9]
 ///            [://////:]
 /// ```
-fn case_swap_backward(c: &mut Criterion, count: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Swap backward/{count}"));
-    let len = count * 2 + 1;
-    let mut v = seq(len);
+fn case_swap_backward<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Swap backward/{len}/{count}"));
+    let mut v = seq::<count>(2 * len + 1);
 
     for d in distances {
-        let end = unsafe { &v[..].as_mut_ptr().add(len) };
+        let end = *unsafe { &v[..].as_mut_ptr().add(2 * len + 1) };
 
         group.bench_with_input(BenchmarkId::new("utils::swap_forward", d), d, |b, _d| {
-            b.iter(|| backward_test(swap_forward::<usize>, *end, *d, count))
+            b.iter(|| backward_test(swap_forward::<[usize; count]>, end, *d, count))
         });
-        group.bench_with_input(BenchmarkId::new("*utils::swap_backward", d), d, |b, _d| {
-            b.iter(|| backward_test(swap_backward::<usize>, *end, *d, count))
-        });
+
+        group.bench_with_input(
+            BenchmarkId::new("utils::swap_backward (!)", d),
+            d,
+            |b, _d| b.iter(|| backward_test(swap_backward::<[usize; count]>, end, *d, count)),
+        );
+
         group.bench_with_input(
             BenchmarkId::new("ptr::swap_nonoverlapping", d),
             d,
-            |b, _d| b.iter(|| backward_test(ptr::swap_nonoverlapping::<usize>, *end, *d, count)),
+            |b, _d| {
+                b.iter(|| backward_test(ptr::swap_nonoverlapping::<[usize; count]>, end, *d, count))
+            },
         );
     }
 
     group.finish();
 }
 
-/// cargo bench --bench=copies "Swap forward/10"
+/// cargo bench --bench=swaps "Swap forward/10/\d+"
 fn bench_swap_forward(c: &mut Criterion) {
-    case_swap_forward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_swap_forward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+    case_swap_forward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_swap_forward::<1>(c, 50, &[0, 10, 20, 30, 40, 50]);
+    case_swap_forward::<1>(
+        c,
+        1000,
+        &[0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+    );
+    case_swap_forward::<1>(
+        c,
+        100_000,
+        &[0, 10_000, 25_000, 50_000, 60_000, 75_000, 99_000, 100_000],
+    );
 }
 
-/// cargo bench --bench=copies "Swap backward/10"
+/// cargo bench --bench=swaps "Swap backward/10/\d+"
 fn bench_swap_backward(c: &mut Criterion) {
-    case_swap_backward(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    case_swap_backward(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
+    case_swap_backward::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_swap_backward::<1>(c, 50, &[0, 10, 20, 30, 40, 50]);
+    case_swap_backward::<1>(
+        c,
+        1000,
+        &[0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+    );
+    case_swap_backward::<1>(
+        c,
+        100_000,
+        &[0, 10_000, 25_000, 50_000, 60_000, 75_000, 99_000, 100_000],
+    );
 }
 
 criterion_group! {
     name = benches;
 
 //    config = Criterion::default().sample_size(500).measurement_time(Duration::new(120, 0));
-    config = Criterion::default()
-             .sample_size(500)
-             .with_profiler(
-                  PProfProfiler::new(100, Output::Flamegraph(None))
-              );
+    config = Criterion::default();
+             // .sample_size(500)
 
     targets = bench_swap_backward, bench_swap_forward
 }
