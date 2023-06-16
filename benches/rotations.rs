@@ -45,7 +45,6 @@ enum Rotation {
     GMRec,
     Helix,
     Drill,
-    Grail,
     Edge,
     Stable,
     Rev,
@@ -184,11 +183,6 @@ fn case<const count: usize>(
                 Piston => {
                     group.bench_with_input(BenchmarkId::new("Piston", l), l, |b, _| {
                         b.iter(|| test(ptr_piston_rotate::<[usize; count]>, l.clone(), mid, r))
-                    });
-                }
-                Grail => {
-                    group.bench_with_input(BenchmarkId::new("Grail", l), l, |b, _| {
-                        b.iter(|| test(ptr_grail_rotate::<[usize; count]>, l.clone(), mid, r))
                     });
                 }
                 Drill => {

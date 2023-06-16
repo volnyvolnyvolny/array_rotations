@@ -175,77 +175,6 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
     }
 }
 
-/// # Grail rotation (Gries-Mills rotation + *swap_backward*)
-///
-/// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
-/// element. Equivalently, rotates the range `left` elements to the left or `right` elements to the
-/// right.
-///
-/// ## Algorithm
-///
-/// "The *Grail rotation* from the *Holy Grail Sort Project* is *Gries-Mills* derived
-/// and tries to improve locality by shifting memory either left or right depending on which
-/// side it's swapped from.
-///
-/// When the smallest side reaches a size of `1` element -- it is the worst case for the
-/// *Gries-Mills rotation*.
-/// <<https://github.com/scandum/rotate>>
-///
-/// ## Safety
-///
-/// The specified range must be valid for reading and writing.
-///
-/// ## Performance
-///
-/// *GM* outperforms *Grail*.
-///
-/// ## Examples
-///
-/// ```text
-///                            mid
-///           left = 9         |     right = 6
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
-///            └──────────────┴/\┴──────────────┘
-///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  - 12 13  - 15] 4 ~~~~~~~~~~~~ 9   // swap <--
-///   └─────┴/\┴─────┘
-///   ┌─────┬~/┬─────┐
-/// [10 ~~ 12  1  -  3 13  - 15] 4  .  .  .  .  9   // swap -->
-///            └─────┴/\┴─────┘
-///            ┌─────┬~~┬─────┐
-///  10  . 12[13 ~~ 15  1 ~~~ 3] 4  .  .  .  .  9
-///
-/// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
-/// ```
-pub unsafe fn ptr_grail_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
-    loop {
-        if left <= right {
-            if left <= 1 {
-                break;
-            }
-
-            let start = mid.sub(left);
-            swap_forward(start, mid, left); // !
-
-            mid = mid.add(left);
-            right -= left;
-        } else {
-            if right <= 1 {
-                break;
-            }
-
-            swap_backward(mid.sub(right), mid, right); // !
-
-            mid = mid.sub(right);
-            left -= right;
-        }
-    }
-
-    if left == 1 || right == 1 {
-        ptr_edge_rotate(left, mid, right);
-    }
-}
-
 /// # Drill rotation
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes the first
@@ -405,11 +334,6 @@ mod tests {
     #[test]
     fn ptr_griesmills_rotate_correct() {
         test_correct(ptr_griesmills_rotate::<usize>);
-    }
-
-    #[test]
-    fn ptr_grail_rotate_correct() {
-        test_correct(ptr_grail_rotate::<usize>);
     }
 
     #[test]
