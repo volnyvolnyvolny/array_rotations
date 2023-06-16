@@ -54,6 +54,7 @@ pub use gm::*;
 /// ## Safety
 ///
 /// The specified range must be valid for reading and writing.
+#[inline(always)]
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     if left == 0 || right == 0 {
         return;
@@ -1004,12 +1005,14 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 //     let t_size = std::mem::size_of::<T>();
 
 //     loop {
-//         if (right == 0) || (left == 0) {
+//         if right <= 1 || left <= 1 {
+//             ptr_edge_rotate(left, mid, right);
 //             return;
 //         }
 
+//         let start = mid.sub(left);
+//
 //         if left == right {
-//             let start = mid.sub(left);
 //             ptr::swap_nonoverlapping(start, mid, left);
 //         }
 
