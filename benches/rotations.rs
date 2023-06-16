@@ -280,28 +280,28 @@ fn case_ends<const count: usize>(c: &mut Criterion, length: usize) {
 
 fn bench_short(c: &mut Criterion) {
     seq_macro::seq!(i in 1..=3 {
-        for l in 4..=40 {
+        for l in 5..=40 {
             case_short::<i>(c, l);
         }
     });
 
-    for l in 4..=40 {
+    for l in 5..=40 {
         case_short::<5>(c, l);
     }
 
-    for l in 4..=40 {
+    for l in 5..=40 {
         case_short::<10>(c, l);
     }
 
-    for l in 4..=40 {
+    for l in 5..=40 {
         case_short::<20>(c, l);
     }
 
-    for l in 4..=40 {
+    for l in 5..=40 {
         case_short::<40>(c, l);
     }
 
-    for l in 4..=40 {
+    for l in 5..=40 {
         case_short::<80>(c, l);
     }
 }

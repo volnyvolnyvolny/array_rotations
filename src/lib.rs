@@ -70,19 +70,15 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
             shift_left(mid, right);
             mid.add(right - 1).write(tmp);
         }
-
-        return;
     } else if right == 1 {
         let tmp = mid.read();
 
         shift_right(start, left);
         start.write(tmp);
-
-        return;
+    } else {
+        // fallback
+        ptr_direct_rotate::<T>(left, mid, right);
     }
-
-    // fallback
-    ptr_direct_rotate::<T>(left, mid, right);
 }
 
 /// # ContrevB (Generalized conjoined triple reversal) rotation
@@ -607,9 +603,14 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
     let mut end = mid.add(right);
 
     loop {
-        if left > right {
+        if left >= right {
             if right <= 1 {
                 break;
+            }
+
+            if left == right {
+                ptr::swap_nonoverlapping(mid.sub(left), mid, right);
+                return;
             }
 
             swap_backward(start, end.sub(left), left);
