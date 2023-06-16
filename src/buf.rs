@@ -26,6 +26,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 use crate::copy_backward;
 use crate::copy_forward;
 use crate::ptr_contrev_rotate;
+use crate::ptr_edge_rotate;
 use std::cmp;
 use std::ptr;
 
@@ -87,11 +88,8 @@ use std::ptr;
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    if (right == 0) || (left == 0) {
+    if right <= 1 || left <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -171,11 +169,8 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    if (right == 0) || (left == 0) {
+    if right <= 1 || left <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -286,11 +281,8 @@ pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, bu
 /// [ 1 ~~~ 3  4  .  6* 7  .  9:10  .  .  .  . 15]
 /// ```
 unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    if (right == 0) || (left == 0) {
+    if right <= 1 || left <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
@@ -464,10 +456,6 @@ pub unsafe fn ptr_bridge_rotate<T>(left: usize, mid: *mut T, right: usize, buffe
 /// or bridge rotation on stack memory. Its first known publication was in 2021 by Igor van den Hoven."
 /// <<https://github.com/scandum/rotate>>
 pub unsafe fn ptr_trinity_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if cmp::min(left, right) <= buffer.len() {
         ptr_aux_rotate(left, mid, right, buffer);
         return;

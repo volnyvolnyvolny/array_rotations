@@ -182,10 +182,6 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if left <= 1 || right <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
@@ -319,10 +315,6 @@ pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize
 /// [10 11 12 13 14 15 :1  2  3* 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if right <= 1 || left <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
@@ -380,10 +372,6 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9]
 /// ```
 pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if right <= 1 || left <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
@@ -468,14 +456,6 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
 /// [10  .  .  .  . 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
-    // if (right == 0) || (left == 0) {
-    //     return;
-    // }
-
     if left <= 1 || right <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
@@ -542,10 +522,6 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 /// [10  .  .  .  . 15: 1  .  3* 4  .  .  .  .  9]
 /// ```
 pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     loop {
         if left <= 1 {
             break;
@@ -627,10 +603,6 @@ pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usiz
 /// [ 9 ~~~~~~~~~~~~~~ 15: 1* 2  .  .  .  .  .  8]
 /// ```
 pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     let mut start = mid.sub(left);
     let mut end = mid.add(right);
 
@@ -739,10 +711,6 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9][ a ~~~ c  d ~~~ f...
 /// ```
 pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     // N.B. the below algorithms can fail if these cases are not checked
     if (right == 0) || (left == 0) {
         return;
@@ -914,10 +882,6 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    // if T::IS_ZST {
-    // return;
-    // }
-
     if left == 0 || right == 0 {
         return;
     }

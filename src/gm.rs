@@ -79,7 +79,7 @@ use std::ptr;
 /// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if (right <= 1) || (left <= 1) {
+    if right <= 1 || left <= 1 {
         ptr_edge_rotate(left, mid, right);
         return;
     }

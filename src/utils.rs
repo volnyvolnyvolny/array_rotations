@@ -44,6 +44,7 @@ use std::slice;
 ///            └─────────────────┘
 /// [ 1  .  3 10  9  8  7  6  5  4 11  .  .  . 15]
 /// ```
+#[inline(always)]
 pub unsafe fn reverse_slice<T>(p: *mut T, count: usize) {
     let slice = slice::from_raw_parts_mut(p, count);
     slice.reverse();
