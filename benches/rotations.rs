@@ -266,18 +266,6 @@ fn case_short<const count: usize>(c: &mut Criterion, length: usize) {
     case_main::<count>(c, length, &ls);
 }
 
-fn case_ends<const count: usize>(c: &mut Criterion, length: usize) {
-    use Rotation::*;
-
-    case::<count>(
-        "Ends",
-        c,
-        length,
-        &[1, length - 1],
-        vec![Direct, Rev, Contrev, Aux, Edge],
-    );
-}
-
 fn bench_short(c: &mut Criterion) {
     seq_macro::seq!(i in 1..=3 {
         for l in 5..=40 {
@@ -343,14 +331,6 @@ fn bench_buf(c: &mut Criterion) {
             1, 6, 200, 3334, 4000, 4998, 5003, 6668, 8000, 9000, 9995, 9999,
         ],
     );
-}
-
-fn bench_ends(c: &mut Criterion) {
-    seq_macro::seq!(i in 1..=100 {
-        for l in [1, 2, 5, 10, 15, 18, 20, 40, 60, 80, 100] {
-            case_ends::<i>(c, l);
-        }
-    });
 }
 
 fn bench_contrev(c: &mut Criterion) {
@@ -539,7 +519,7 @@ criterion_group! {
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
 
-    targets = bench_buf, bench_contrev, bench_rev, bench_gm, bench_short, bench_ends
+    targets = bench_buf, bench_contrev, bench_rev, bench_gm, bench_short
 }
 
 criterion_main!(benches);

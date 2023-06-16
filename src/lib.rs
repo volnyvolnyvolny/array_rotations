@@ -713,17 +713,17 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// ```
 pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // N.B. the below algorithms can fail if these cases are not checked
-    if (right == 0) || (left == 0) {
-        return;
-    }
-
-    if left == right {
-        let start = mid.sub(left);
-        ptr::swap_nonoverlapping(start, mid, left);
+    if right <= 1 || left <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
     let start = mid.sub(left);
+
+    if left == right {
+        ptr::swap_nonoverlapping(start, mid, left);
+        return;
+    }
 
     // beginning of first round
     let mut tmp: T = start.read();
@@ -883,7 +883,8 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if left == 0 || right == 0 {
+    if left <= 1 || right <= 1 {
+        ptr_edge_rotate(left, mid, right);
         return;
     }
 
