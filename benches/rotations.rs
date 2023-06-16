@@ -233,7 +233,7 @@ fn case_contrev<const count: usize>(c: &mut Criterion, length: usize, ls: &[usiz
 fn case_gm<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {
     use Rotation::*;
 
-    case::<count>("GM", c, length, ls, vec![Direct, GM, GMRec, Drill, Aux]);
+    case::<count>("GM", c, length, ls, vec![Direct, GM, GMRec, Drill]);
 }
 
 fn case_main<const count: usize>(c: &mut Criterion, length: usize, ls: &[usize]) {

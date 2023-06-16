@@ -49,7 +49,7 @@ pub use gm::*;
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
-/// This case is optimized for the `left = 1` or `right = 1` situation.
+/// This is the fastest way to calculate `left = 1` and `right = 1` cases.
 ///
 /// ## Safety
 ///
@@ -595,7 +595,7 @@ pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usiz
 /// [ 1  9  -  -  -  -  - 15  2 ~~~~~~~~~~~~~~~ 8]  // swap
 ///   └────────/\──────────┘
 ///   ┌────────\~──────────┐
-/// [15; 9  -  -  -  - 14] 1 ~~~~~~~~~~~~~~~~~~ 8]  // AUX or any other rotation
+/// [15; 9  -  -  -  - 14] 1 ~~~~~~~~~~~~~~~~~~ 8]  // see ptr_edge_rotate
 ///
 /// [ 9 ~~~~~~~~~~~~~~ 15: 1* 2  .  .  .  .  .  8]
 /// ```
@@ -610,7 +610,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
             }
 
             if left == right {
-                ptr::swap_nonoverlapping(mid.sub(left), mid, right);
+                ptr::swap_nonoverlapping(start, mid, right);
                 return;
             }
 

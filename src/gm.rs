@@ -26,6 +26,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 use crate::ptr_edge_rotate;
 use crate::swap_backward;
 use crate::swap_forward;
+
 use std::ptr;
 
 /// # Gries-Mills rotation (recursive variant)
@@ -110,15 +111,10 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 /// What remains of the larger array is now the smallest array, which you rotate in
 /// a similar manner, until the smallest side shrinks to `0` elements. Its first known
 /// publication was in *1981* by *David Gries* and *Harlan Mills*."
+///
+/// "When the smallest side reaches a size of `1` element -- it is the worst case for the
+/// *Gries-Mills rotation*." We handle it separately.
 /// <<https://github.com/scandum/rotate>>
-///
-/// ## Performance
-///
-/// "In some cases this rotation outperforms the classic *Triple reversal rotation*
-/// while making fewer moves." <<https://github.com/scandum/rotate>>
-///
-/// When the smallest side reaches a size of `1` element -- it is the worst case for the
-/// *Gries-Mills rotation*.
 ///
 /// ## Safety
 ///
@@ -198,15 +194,18 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
 /// ## Examples
 ///
 /// ```text
-///                            mid
-///           left = 9         |     right = 6
-/// [ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]  // swap <--
-///            └──────────────┴/\┴──────────────┘
-///            ┌──────────────┬\~┬──────────────┐
-/// [ 1  .  3;10  -  -  -  - 15] 4 ~~~~~~~~~~~~ 9   // swap -->
-///   └─────┴/\┴─────────────┘
-///    ┌─────────────┬~~┬─────┐
-/// [ 10 ~~~~~~~~~~ 15  1 ~~~ 3* 4  .  .  .  .  9]
+///          mid
+///  left = 3|     right = 8
+/// [ a  b  c* 1  2  3  4  5 :6  7  8]  // swap -->
+///   └─────── |──/\─┘        |
+///            └──\/──────────┘
+/// [ 1 ~~~ 3* 4 ~~~ 6  a  b  c  7  8]
+///   1 ~~~ 3  4 ~~~ 6[ a  b :c* 7  8]  // swap -->
+///                        └──┴/\┴──┘
+///                        ┌──┬\~┬──┐
+///   1 ~~~~~~~~~~~~ 6[ a  7  8  b  c]  // swap -->
+///   1 ~~~~~~~~~~~~ 6[ a *7 :8] b  c   // ptr_edge_rotate
+///   1 ~~~ 3* 4 ~~~ 6  7  8 :a  b  c
 /// ```
 pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     let mut start = mid.sub(left);
