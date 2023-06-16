@@ -504,5 +504,12 @@ mod tests {
 
         let s = vec![13, 14, 15, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
         assert_eq!(v, s);
+
+        let (v, (x, y)) = prepare_swap(15, 1, 8);
+
+        unsafe { swap_backward(x, y, 8) };
+
+        let s = vec![15, 9, 10, 11, 12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8];
+        assert_eq!(v, s);
     }
 }
