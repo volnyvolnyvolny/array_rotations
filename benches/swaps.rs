@@ -137,6 +137,9 @@ fn bench_swap_forward(c: &mut Criterion) {
     case_swap_forward::<1>(c, 50);
     case_swap_forward::<1>(c, 1000);
     case_swap_forward::<1>(c, 100_000);
+
+    case_swap_forward::<10>(c, 10);
+    case_swap_forward::<10>(c, 100_000);
 }
 
 /// cargo bench --bench=swaps "Swap backward/10/\d+"
@@ -145,6 +148,9 @@ fn bench_swap_backward(c: &mut Criterion) {
     case_swap_backward::<1>(c, 50);
     case_swap_backward::<1>(c, 1000);
     case_swap_backward::<1>(c, 100_000);
+
+    case_swap_backward::<10>(c, 10);
+    case_swap_backward::<10>(c, 100_000);
 }
 
 criterion_group! {
