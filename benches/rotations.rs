@@ -507,8 +507,8 @@ criterion_group! {
     name = benches;
 
 //    config = Criterion::default().sample_size(500).measurement_time(Duration::new(120, 0));
-    config = Criterion::default()
-             .sample_size(1000);
+    config = Criterion::default();
+//             .sample_size(1000);
              // .with_profiler(
              //      PProfProfiler::new(100, Output::Flamegraph(None))
              //  );
