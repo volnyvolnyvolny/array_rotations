@@ -50,6 +50,32 @@ pub unsafe fn reverse_slice<T>(p: *mut T, count: usize) {
     slice.reverse();
 }
 
+/// # Swap
+///
+/// Swap elements `p.add(x)` and `p.add(y)``.
+///
+/// ## Safety
+///
+/// The specified elementr must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///            x                 y
+/// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]  // swap
+///            └─────────────────┘
+/// [ 1  .  3 10  5  .  .  .  9 11  .  .  . 15]
+/// ```
+#[inline(always)]
+pub unsafe fn swap<T>(p: *mut T, x: usize, y: usize) {
+    let (x, y) = (p.add(x), p.add(y));
+
+    let x_ref = unsafe { &mut *x.cast::<T>() };
+    let y_ref = unsafe { &mut *y.cast::<T>() };
+
+    std::mem::swap(x_ref, y_ref);
+}
+
 /// # Copy backward
 ///
 /// Copy region `[src, src + count)` to `[dst, dst + count)` moving left.
@@ -378,6 +404,47 @@ mod tests {
 
             (v, (src.clone(), dst.clone()))
         }
+    }
+
+    #[test]
+    fn reverse_slice_correct() {
+        let mut v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        unsafe { reverse_slice(v.as_mut_ptr(), 15) };
+
+        assert_eq!(v, vec![15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+
+        v = vec![1, 2, 3];
+        unsafe { reverse_slice(v.as_mut_ptr(), 3) };
+
+        assert_eq!(v, vec![3, 2, 1]);
+    }
+
+    #[test]
+    fn mem_swap_correct() {
+        let mut v = vec![1, 2, 3];
+
+        unsafe { swap(v.as_mut_ptr(), 0, 2) };
+
+        assert_eq!(v, vec![3, 2, 1]);
+
+        //
+        v = vec![1, 2];
+
+        unsafe { swap(v.as_mut_ptr(), 0, 1) };
+
+        assert_eq!(v, vec![2, 1]);
+
+        //
+        v = vec![1, 2, 3, 4, 5, 6, 7, 8];
+
+        unsafe { swap(v.as_mut_ptr(), 0, 7) };
+
+        assert_eq!(v, vec![8, 2, 3, 4, 5, 6, 7, 1]);
+
+        //
+        unsafe { swap(v.as_mut_ptr(), 4, 3) };
+
+        assert_eq!(v, vec![8, 2, 3, 5, 4, 6, 7, 1]);
     }
 
     #[test]

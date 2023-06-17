@@ -4,11 +4,9 @@ use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Cr
 
 use rust_rotations::utils::*;
 
-use std::array::TryFromSliceError;
 // use std::time::Duration;
 use std::mem;
 use std::ptr;
-use std::slice;
 
 fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
     let mut v = vec![[0; count]; size];
@@ -171,8 +169,7 @@ fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
 
     group.bench_with_input(BenchmarkId::new("slice.reverse", count), &1, |b, _| {
         b.iter(|| unsafe {
-            let slice = slice::from_raw_parts_mut(start, 3);
-            slice.reverse();
+            reverse_slice(start, 3);
         })
     });
 
@@ -184,7 +181,7 @@ fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
 fn bench_swap_pair(c: &mut Criterion) {
     let mut group = c.benchmark_group(format!("Swap pair"));
 
-    seq_macro::seq!(i in 1..=100 {
+    seq_macro::seq!(i in 1..=10 {
        case_swap_pair::<i>(&mut group);
     });
 
