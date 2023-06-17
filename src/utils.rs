@@ -56,7 +56,7 @@ pub unsafe fn reverse_slice<T>(p: *mut T, count: usize) {
 ///
 /// ## Safety
 ///
-/// The specified elementr must be valid for reading and writing.
+/// The specified elements must be valid for reading and writing.
 ///
 /// ## Example
 ///

@@ -1,3 +1,5 @@
+#![feature(slice_swap_unchecked)]
+
 use criterion::measurement::WallTime;
 use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Criterion};
 // use pprof::criterion::{Output, PProfProfiler};
@@ -132,7 +134,7 @@ fn case_swap_backward<const count: usize>(c: &mut Criterion, len: usize) {
     group.finish();
 }
 
-fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
+fn case_swap<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
     let mut v = seq::<1>(3);
 
     let start = v.as_mut_ptr();
@@ -169,6 +171,20 @@ fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
         })
     });
 
+    group.bench_with_input(BenchmarkId::new("slice::swap", count), &1, |b, _| {
+        b.iter(|| unsafe {
+            let slice = std::slice::from_raw_parts_mut(start, count);
+            slice.swap(0, 2);
+        })
+    });
+
+    group.bench_with_input(BenchmarkId::new("slice::swap", count), &1, |b, _| {
+        b.iter(|| unsafe {
+            let slice = std::slice::from_raw_parts_mut(start, count);
+            slice.swap_unchecked(0, 2);
+        })
+    });
+
     group.bench_with_input(BenchmarkId::new("vector.reverse", count), &1, |b, _| {
         b.iter(|| v.reverse());
     });
@@ -178,7 +194,7 @@ fn bench_swap_pair(c: &mut Criterion) {
     let mut group = c.benchmark_group(format!("Swap pair"));
 
     seq_macro::seq!(i in 1..=10 {
-       case_swap_pair::<i>(&mut group);
+       case_swap::<i>(&mut group);
     });
 
     group.finish();
