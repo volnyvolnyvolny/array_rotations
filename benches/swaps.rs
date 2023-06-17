@@ -173,14 +173,14 @@ fn case_swap<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
 
     group.bench_with_input(BenchmarkId::new("slice::swap", count), &1, |b, _| {
         b.iter(|| unsafe {
-            let slice = std::slice::from_raw_parts_mut(start, count);
+            let slice = std::slice::from_raw_parts_mut(start, 3);
             slice.swap(0, 2);
         })
     });
 
     group.bench_with_input(BenchmarkId::new("slice::swap", count), &1, |b, _| {
         b.iter(|| unsafe {
-            let slice = std::slice::from_raw_parts_mut(start, count);
+            let slice = std::slice::from_raw_parts_mut(start, 3);
             slice.swap_unchecked(0, 2);
         })
     });
