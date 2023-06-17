@@ -177,7 +177,7 @@ fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
     });
 
     group.bench_with_input(BenchmarkId::new("vector.reverse", count), &1, |b, _| {
-        b.iter(|| v.reserve(0));
+        b.iter(|| v.reverse());
     });
 }
 
