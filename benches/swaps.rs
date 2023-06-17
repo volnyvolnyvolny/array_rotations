@@ -5,7 +5,6 @@ use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Cr
 use rust_rotations::utils::*;
 
 // use std::time::Duration;
-use std::mem;
 use std::ptr;
 
 fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
@@ -141,15 +140,12 @@ fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
 
     let (x, y) = (start, unsafe { end.sub(1) });
 
-    let x_ref = unsafe { &mut *x.cast::<[usize; 1]>() };
-    let y_ref = unsafe { &mut *y.cast::<[usize; 1]>() };
-
     group.bench_with_input(BenchmarkId::new("ptr::swap", count), &1, |b, _| {
         b.iter(|| unsafe { ptr::swap(x, y) })
     });
 
     group.bench_with_input(BenchmarkId::new("mem::swap", count), &1, |b, _| {
-        b.iter(|| mem::swap(x_ref, y_ref))
+        b.iter(|| unsafe { swap(start, 0, 2) })
     });
 
     group.bench_with_input(BenchmarkId::new("read-write", count), &1, |b, _| {
