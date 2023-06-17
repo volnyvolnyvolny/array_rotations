@@ -178,19 +178,23 @@ fn case_swap<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
         })
     });
 
-    group.bench_with_input(BenchmarkId::new("slice::swap", count), &1, |b, _| {
-        b.iter(|| unsafe {
-            let slice = std::slice::from_raw_parts_mut(start, 3);
-            slice.swap_unchecked(0, 2);
-        })
-    });
+    group.bench_with_input(
+        BenchmarkId::new("slice::swap_unchecked", count),
+        &1,
+        |b, _| {
+            b.iter(|| unsafe {
+                let slice = std::slice::from_raw_parts_mut(start, 3);
+                slice.swap_unchecked(0, 2);
+            })
+        },
+    );
 
     group.bench_with_input(BenchmarkId::new("vector.reverse", count), &1, |b, _| {
         b.iter(|| v.reverse());
     });
 }
 
-fn bench_swap_pair(c: &mut Criterion) {
+fn bench_swap(c: &mut Criterion) {
     let mut group = c.benchmark_group(format!("Swap pair"));
 
     seq_macro::seq!(i in 1..=10 {
@@ -229,7 +233,7 @@ criterion_group! {
     config = Criterion::default();
              // .sample_size(500)
 
-    targets = bench_swap_backward, bench_swap_forward, bench_swap_pair
+    targets = bench_swap_backward, bench_swap_forward, bench_swap
 }
 
 criterion_main!(benches);
