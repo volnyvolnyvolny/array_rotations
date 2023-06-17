@@ -1,10 +1,14 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::measurement::WallTime;
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Criterion};
 // use pprof::criterion::{Output, PProfProfiler};
 
 use rust_rotations::utils::*;
 
+use std::array::TryFromSliceError;
 // use std::time::Duration;
+use std::mem;
 use std::ptr;
+use std::slice;
 
 fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
     let mut v = vec![[0; count]; size];
@@ -131,6 +135,62 @@ fn case_swap_backward<const count: usize>(c: &mut Criterion, len: usize) {
     group.finish();
 }
 
+fn case_swap_pair<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
+    let mut v = seq::<1>(3);
+
+    let start = v.as_mut_ptr();
+    let end = unsafe { start.add(2) };
+
+    let (x, y) = (start, unsafe { end.sub(1) });
+
+    let x_ref = unsafe { &mut *x.cast::<[usize; 1]>() };
+    let y_ref = unsafe { &mut *y.cast::<[usize; 1]>() };
+
+    group.bench_with_input(BenchmarkId::new("ptr::swap", count), &1, |b, _| {
+        b.iter(|| unsafe { ptr::swap(x, y) })
+    });
+
+    group.bench_with_input(BenchmarkId::new("mem::swap", count), &1, |b, _| {
+        b.iter(|| mem::swap(x_ref, y_ref))
+    });
+
+    group.bench_with_input(BenchmarkId::new("read-write", count), &1, |b, _| {
+        b.iter(|| unsafe {
+            let t = x.read();
+
+            x.write(y.read());
+            y.write(t);
+        })
+    });
+
+    group.bench_with_input(BenchmarkId::new("ptr::replace", count), &1, |b, _| {
+        b.iter(|| unsafe {
+            start.write(end.sub(1).replace(start.read()));
+        })
+    });
+
+    group.bench_with_input(BenchmarkId::new("slice.reverse", count), &1, |b, _| {
+        b.iter(|| unsafe {
+            let slice = slice::from_raw_parts_mut(start, 3);
+            slice.reverse();
+        })
+    });
+
+    group.bench_with_input(BenchmarkId::new("vector.reverse", count), &1, |b, _| {
+        b.iter(|| v.reserve(0));
+    });
+}
+
+fn bench_swap_pair(c: &mut Criterion) {
+    let mut group = c.benchmark_group(format!("Swap pair"));
+
+    seq_macro::seq!(i in 1..=100 {
+       case_swap_pair::<i>(&mut group);
+    });
+
+    group.finish();
+}
+
 /// cargo bench --bench=swaps "Swap forward/10/\d+"
 fn bench_swap_forward(c: &mut Criterion) {
     case_swap_forward::<1>(c, 10);
@@ -160,7 +220,7 @@ criterion_group! {
     config = Criterion::default();
              // .sample_size(500)
 
-    targets = bench_swap_backward, bench_swap_forward
+    targets = bench_swap_backward, bench_swap_forward, bench_swap_pair
 }
 
 criterion_main!(benches);

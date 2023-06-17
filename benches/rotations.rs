@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BenchmarkGroup, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rust_rotations::*;
 // use pprof::criterion::{Output, PProfProfiler};
 

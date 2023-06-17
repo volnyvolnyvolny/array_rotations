@@ -324,8 +324,12 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
     } else {
         #[inline(always)]
         unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-            let slice = slice::from_raw_parts_mut(p, size);
-            slice.reverse();
+            if size <= 3 {
+               ptr::swap(p, p.add(size).sub(1));               
+            } else {
+               let slice = slice::from_raw_parts_mut(p, size);
+               slice.reverse();          
+            }
         }
 
         reverse_slice(start, left);
