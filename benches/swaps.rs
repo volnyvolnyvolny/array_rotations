@@ -134,6 +134,32 @@ fn case_swap_backward<const count: usize>(c: &mut Criterion, len: usize) {
     group.finish();
 }
 
+/// # Swap
+///
+/// Swap elements `p.add(x)` and `p.add(y)``.
+///
+/// ## Safety
+///
+/// The specified elements must be valid for reading and writing.
+///
+/// ## Example
+///
+/// ```text
+///            x                 y
+/// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]  // swap
+///            └─────────────────┘
+/// [ 1  .  3 10  5  .  .  .  9 11  .  .  . 15]
+/// ```
+#[inline(always)]
+unsafe fn swap_ref<T>(p: *mut T, x: usize, y: usize) {
+    let (x, y) = (p.add(x), p.add(y));
+
+    let x_ref = unsafe { &mut *x.cast::<T>() };
+    let y_ref = unsafe { &mut *y.cast::<T>() };
+
+    std::mem::swap(x_ref, y_ref);
+}
+
 fn case_swap<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
     let mut v = seq::<1>(3);
 
@@ -147,7 +173,7 @@ fn case_swap<const count: usize>(group: &mut BenchmarkGroup<WallTime>) {
     });
 
     group.bench_with_input(BenchmarkId::new("mem::swap", count), &1, |b, _| {
-        b.iter(|| unsafe { swap(start, 0, 2) })
+        b.iter(|| unsafe { swap_ref(start, 0, 2) })
     });
 
     group.bench_with_input(BenchmarkId::new("read-write", count), &1, |b, _| {

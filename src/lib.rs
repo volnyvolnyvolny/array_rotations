@@ -325,10 +325,10 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
         #[inline(always)]
         unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
             if size <= 3 {
-               ptr::swap(p, p.add(size).sub(1));               
+                ptr::swap(p, p.add(size).sub(1));
             } else {
-               let slice = slice::from_raw_parts_mut(p, size);
-               slice.reverse();          
+                let slice = slice::from_raw_parts_mut(p, size);
+                slice.reverse();
             }
         }
 
@@ -734,7 +734,8 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // the very end. This is possibly due to the fact that swapping or replacing temporaries
     // uses only one memory address in the loop instead of needing to manage two.
     loop {
-        tmp = start.add(i).replace(tmp);
+        std::mem::swap(&mut tmp, &mut *start.add(i));
+        // tmp = start.add(i).replace(tmp);
 
         // instead of incrementing `i` and then checking if it is outside the bounds, we
         // check if `i` will go outside the bounds on the next increment. This prevents
@@ -761,7 +762,8 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
         i = s + right;
 
         loop {
-            tmp = start.add(i).replace(tmp);
+            std::mem::swap(&mut tmp, &mut *start.add(i));
+            // tmp = start.add(i).replace(tmp);
             if i >= left {
                 i -= left;
                 if i == s {
@@ -974,9 +976,9 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 // /// `min(left, right)` elements until a smaller rotate problem is left.
 // ///
 // /// ```text
-// ///                                   mid
-// ///              left = 11            | right = 4
-// /// [ 5  6  7  8: 9 10 11 12 13 14 15 "1  2  3  4]   swap
+// ///                                  mid
+// ///              left = 11           |  right = 4
+// /// [ 5  6  7  8: 9 10 11 12 13 14 15* 1  2  3  4]   swap
 // ///                        └────────┴/\┴────────┘
 // ///                        ┌────────┬~~┬────────┐
 // /// [ 5  .  .  .  .  . 11  1 ~~~~~~ 4 12 13 14 15]
@@ -984,7 +986,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 // /// [ 5  .  7  1  2  3  4  8  9 10 11 12 ~~~~~ 15    swap
 // ///            └────────┴/\┴────────┘
 // ///            ┌────────┬~~┬────────┐
-// /// [ 5  .  7  8: 9  . 11: 1 ~~~~~~ 4"12  .  . 15
+// /// [ 5  .  7  8: 9  . 11: 1 ~~~~~~ 4*12  .  . 15
 // /// we cannot swap any more, but a smaller rotation problem is left to solve
 // /// ```
 // ///
@@ -1102,9 +1104,9 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// `min(left, right)` elements until a smaller rotate problem is left.
 ///
 /// ```text
-///                                   mid
-///              left = 11            | right = 4
-/// [ 5  6  7  8: 9 10 11 12 13 14 15 "1  2  3  4]   swap
+///                                  mid
+///              left = 11           |  right = 4
+/// [ 5  6  7  8: 9 10 11 12 13 14 15* 1  2  3  4]   swap
 ///                        └────────┴/\┴────────┘
 ///                        ┌────────┬~~┬────────┐
 /// [ 5  .  .  .  .  . 11  1 ~~~~~~ 4 12 13 14 15]
@@ -1112,7 +1114,7 @@ pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 5  .  7  1  2  3  4  8  9 10 11 12 ~~~~~ 15    swap
 ///            └────────┴/\┴────────┘
 ///            ┌────────┬~~┬────────┐
-/// [ 5  .  7  8: 9  . 11: 1 ~~~~~~ 4"12  .  . 15
+/// [ 5  .  7  8: 9  . 11: 1 ~~~~~~ 4*12  .  . 15
 /// we cannot swap any more, but a smaller rotation problem is left to solve
 /// ```
 ///

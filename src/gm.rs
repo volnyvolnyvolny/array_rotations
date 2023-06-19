@@ -24,9 +24,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 use crate::ptr_edge_rotate;
-use crate::swap_backward;
-use crate::swap_forward;
-
+use std::mem::MaybeUninit;
 use std::ptr;
 
 /// # Gries-Mills rotation (recursive variant)
@@ -207,7 +205,9 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
 ///   1 ~~~~~~~~~~~~ 6[ a *7 :8] b  c   // ptr_edge_rotate
 ///   1 ~~~ 3* 4 ~~~ 6  7  8 :a  b  c
 /// ```
-pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
+pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
+    let mut mid = mid.cast::<MaybeUninit<T>>();
+
     let mut start = mid.sub(left);
     let mut end = mid.add(right);
     let mut s;
@@ -220,7 +220,16 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
             s = old_r - right;
 
-            swap_forward(start, mid, s);
+            for i in 0..s {
+                // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+                let x = unsafe { &mut *start.add(i) };
+
+                // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+                let y = unsafe { &mut *mid.add(i) };
+
+                std::mem::swap(&mut *x, &mut *y);
+            }
+
             mid = mid.add(s);
             start = start.add(s);
         }
@@ -235,7 +244,20 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
         s = old_l - left;
 
-        swap_backward(mid.sub(s), end.sub(s), s);
+        let x = mid;
+        let y = end;
+
+        for i in 1..=s {
+            // while i <= count {
+            // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+            let x = unsafe { &mut *x.sub(i) };
+
+            // SAFETY: By precondition, `i` is in-bounds because it's below `count`
+            let y = unsafe { &mut *y.sub(i) };
+
+            std::mem::swap(&mut *x, &mut *y);
+        }
+
         mid = mid.sub(s);
         end = end.sub(s);
     }

@@ -23,8 +23,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-use crate::copy_backward;
-use crate::copy_forward;
+use crate::copy;
 use crate::ptr_contrev_rotate;
 use crate::ptr_edge_rotate;
 use std::cmp;
@@ -99,11 +98,11 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 
     if left < right {
         ptr::copy_nonoverlapping(start, buf, left);
-        copy_forward(mid, start, right); // ! see 'ptr_naive_aux_rotate'
+        copy(mid, start, right); // ! see 'ptr_naive_aux_rotate'
         ptr::copy_nonoverlapping(buf, dim, left);
     } else if right < left {
         ptr::copy_nonoverlapping(mid, buf, right);
-        copy_backward(start, dim, left); // !
+        copy(start, dim, left); // !
         ptr::copy_nonoverlapping(buf, start, right);
     } else {
         ptr::swap_nonoverlapping(start, mid, left);
