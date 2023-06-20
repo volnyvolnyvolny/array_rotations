@@ -158,7 +158,9 @@ pub unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
 pub unsafe fn block_copy<T>(src: *const T, dst: *mut T, count: usize) {
     let block_size = dst.offset_from(src).unsigned_abs();
 
-    if block_size == 1 {
+    if src == dst {
+        return;  
+    } else if block_size == 1 {
         copy(src, dst, count);
     } else if block_size > count {
         copy_nonoverlapping(src, dst, count);
