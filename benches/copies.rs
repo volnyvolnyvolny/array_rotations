@@ -219,13 +219,22 @@ fn bench_copy_distance(c: &mut Criterion) {
 
 /// cargo bench --bench=copies "Copy"
 fn bench_copy(c: &mut Criterion) {
+    let arr: [usize; 50] = core::array::from_fn(|i| i);
+    let arr500: [usize; 50] = core::array::from_fn(|i| i * 10);
+
     case_copy::<1>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy::<1>(c, 49, &arr);
+    case_copy::<1>(c, 450, &arr500);
     case_copy::<1>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 
     case_copy::<2>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy::<2>(c, 49, &arr);
+    case_copy::<2>(c, 450, &arr500);
     case_copy::<2>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 
     case_copy::<10>(c, 10, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    case_copy::<10>(c, 49, &arr);
+    case_copy::<10>(c, 450, &arr500);
     case_copy::<10>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
 }
 
