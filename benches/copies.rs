@@ -77,6 +77,10 @@ fn case_copy<const count: usize>(c: &mut Criterion, len: usize, distances: &[usi
             b.iter(|| forward_test(block_copy::<[usize; count]>, start, *d, len))
         });
 
+        group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), d, |b, _| {
+            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, *d, len))
+        });
+
         group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _d| {
             b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, len))
         });
@@ -109,6 +113,10 @@ fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distanc
 
         group.bench_with_input(BenchmarkId::new("utils::block_copy", d), d, |b, _| {
             b.iter(|| backward_test(block_copy::<[usize; count]>, end, *d, len))
+        });
+
+        group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), d, |b, _| {
+            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, *d, len))
         });
 
         group.bench_with_input(
@@ -153,6 +161,10 @@ fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
             b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, 1, *l))
         });
 
+        group.bench_with_input(BenchmarkId::new("utils::byte_copy", 1), l, |b, _| {
+            b.iter(|| backward_test(byte_copy::<[usize; count]>, end, 1, *l))
+        });
+
         group.bench_with_input(BenchmarkId::new("utils::shift_left", l), l, |b, _l| {
             b.iter(|| unsafe { shift_left::<[usize; count]>(start.add(1), *l) })
         });
@@ -188,6 +200,10 @@ fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
             b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, 1, *l))
+        });
+
+        group.bench_with_input(BenchmarkId::new("utils::byte_copy", 1), l, |b, _| {
+            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
@@ -264,56 +280,56 @@ fn bench_copy(c: &mut Criterion) {
 
 /// cargo bench --bench=copies "Shift left"
 fn bench_shift_left(c: &mut Criterion) {
-    let arr: [usize; 50] = core::array::from_fn(|i| i + 1);
-    let arr2 = [1000, 25_000, 50_000, 75_000, 100_000];
+    let lens: [usize; 50] = core::array::from_fn(|i| i + 1);
+    let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
-    case_shift_left::<1>(c, &arr);
-    case_shift_left::<1>(c, &arr2);
+    case_shift_left::<1>(c, &lens);
+    case_shift_left::<1>(c, &lens_100_000);
 
-    case_shift_left::<2>(c, &arr);
-    case_shift_left::<2>(c, &arr2);
+    case_shift_left::<2>(c, &lens);
+    case_shift_left::<2>(c, &lens_100_000);
 
-    case_shift_left::<10>(c, &arr);
-    case_shift_left::<10>(c, &arr2);
+    case_shift_left::<10>(c, &lens);
+    case_shift_left::<10>(c, &lens_100_000);
 
-    case_shift_left::<20>(c, &arr);
-    case_shift_left::<20>(c, &arr2);
+    case_shift_left::<15>(c, &lens);
+    case_shift_left::<15>(c, &lens_100_000);
 
-    case_shift_left::<40>(c, &arr);
-    case_shift_left::<40>(c, &arr2);
+    case_shift_left::<20>(c, &lens);
+    case_shift_left::<20>(c, &lens_100_000);
 
-    case_shift_left::<60>(c, &arr);
-    case_shift_left::<60>(c, &arr2);
+    case_shift_left::<40>(c, &lens);
+    case_shift_left::<40>(c, &lens_100_000);
 
-    case_shift_left::<80>(c, &arr);
-    case_shift_left::<80>(c, &arr2);
+    case_shift_left::<80>(c, &lens);
+    case_shift_left::<80>(c, &lens_100_000);
 }
 
 /// cargo bench --bench=copies "Shift right"
 fn bench_shift_right(c: &mut Criterion) {
-    let arr: [usize; 50] = core::array::from_fn(|i| i + 1);
-    let arr2 = [1000, 25_000, 50_000, 75_000, 100_000];
+    let lens: [usize; 50] = core::array::from_fn(|i| i + 1);
+    let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
-    case_shift_right::<1>(c, &arr);
-    case_shift_right::<1>(c, &arr2);
+    case_shift_right::<1>(c, &lens);
+    case_shift_right::<1>(c, &lens_100_000);
 
-    case_shift_right::<2>(c, &arr);
-    case_shift_right::<2>(c, &arr2);
+    case_shift_right::<2>(c, &lens);
+    case_shift_right::<2>(c, &lens_100_000);
 
-    case_shift_right::<10>(c, &arr);
-    case_shift_right::<10>(c, &arr2);
+    case_shift_right::<10>(c, &lens);
+    case_shift_right::<10>(c, &lens_100_000);
 
-    case_shift_right::<20>(c, &arr);
-    case_shift_right::<20>(c, &arr2);
+    case_shift_right::<15>(c, &lens);
+    case_shift_right::<15>(c, &lens_100_000);
 
-    case_shift_right::<40>(c, &arr);
-    case_shift_right::<40>(c, &arr2);
+    case_shift_right::<20>(c, &lens);
+    case_shift_right::<20>(c, &lens_100_000);
 
-    case_shift_right::<60>(c, &arr);
-    case_shift_right::<60>(c, &arr2);
+    case_shift_right::<40>(c, &lens);
+    case_shift_right::<40>(c, &lens_100_000);
 
-    case_shift_right::<80>(c, &arr);
-    case_shift_right::<80>(c, &arr2);
+    case_shift_right::<80>(c, &lens);
+    case_shift_right::<80>(c, &lens_100_000);
 }
 
 criterion_group! {

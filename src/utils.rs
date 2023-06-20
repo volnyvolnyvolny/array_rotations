@@ -79,9 +79,6 @@ pub unsafe fn reverse_slice<T>(p: *mut T, count: usize) {
 /// [ 1  .  3 *4  .  6 :4 ~~~~~~~~~~~~~~ 10 14 15]
 /// ```
 pub unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
-    let src = src.cast::<MaybeUninit<T>>();
-    let dst = dst.cast::<MaybeUninit<T>>();
-
     #[inline(always)]
     unsafe fn _copy<T>(src: *const T, dst: *mut T, i: usize) {
         // SAFE: By precondition, `i` is in-bounds because it's below `count`
@@ -102,6 +99,22 @@ pub unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
             _copy(src, dst, i);
         }
     }
+}
+
+/// # Copy (may overlap)
+///
+/// Copy region `[src, src + count)` to `[dst, dst + count)` by byte.
+///
+/// Regions could overlap.
+///
+/// ## Safety
+///
+/// The specified range must be valid for reading and writing.
+pub unsafe fn byte_copy<T>(src: *const T, dst: *mut T, count: usize) {
+    let src = src.cast::<u8>();
+    let dst = dst.cast::<u8>();
+
+    copy(src, dst, count * size_of::<T>());
 }
 
 /// # Copy (may overlap)
@@ -159,15 +172,12 @@ pub unsafe fn block_copy<T>(src: *const T, dst: *mut T, count: usize) {
     let block_size = dst.offset_from(src).unsigned_abs();
 
     if src == dst {
-        return;  
+        return;
     } else if block_size == 1 {
         copy(src, dst, count);
     } else if block_size > count {
         copy_nonoverlapping(src, dst, count);
     } else {
-        let src = src.cast::<MaybeUninit<T>>();
-        let dst = dst.cast::<MaybeUninit<T>>();
-
         let mut s = src;
         let mut d = dst;
 
@@ -433,6 +443,23 @@ mod tests {
         let (v, (src, dst)) = prepare(15, 7, 4);
 
         unsafe { block_copy(src, dst, 6) };
+
+        let s = vec![1, 2, 3, 7, 8, 9, 10, 11, 12, 10, 11, 12, 13, 14, 15];
+        assert_eq!(v, s);
+    }
+
+    #[test]
+    fn byte_copy_correct() {
+        let (v, (src, dst)) = prepare(15, 4, 7);
+
+        unsafe { byte_copy(src, dst, 7) };
+
+        let s = vec![1, 2, 3, 4, 5, 6, 4, 5, 6, 7, 8, 9, 10, 14, 15];
+        assert_eq!(v, s);
+
+        let (v, (src, dst)) = prepare(15, 7, 4);
+
+        unsafe { byte_copy(src, dst, 6) };
 
         let s = vec![1, 2, 3, 7, 8, 9, 10, 11, 12, 10, 11, 12, 13, 14, 15];
         assert_eq!(v, s);
