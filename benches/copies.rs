@@ -70,40 +70,36 @@ fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize])
 
     for d in distances {
         if *d >= 0 {
-            let d = d.unsigned_abs();
-
             group.bench_with_input(BenchmarkId::new("utils::copy", d), &d, |b, _d| {
-                b.iter(|| forward_test(copy::<[usize; N]>, start, d, len))
+                b.iter(|| forward_test(copy::<[usize; N]>, start, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("utils::block_copy", d), &d, |b, _| {
-                b.iter(|| forward_test(block_copy::<[usize; N]>, start, d, len))
+                b.iter(|| forward_test(block_copy::<[usize; N]>, start, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), &d, |b, _| {
-                b.iter(|| forward_test(byte_copy::<[usize; N]>, start, d, len))
+                b.iter(|| forward_test(byte_copy::<[usize; N]>, start, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("ptr::copy", d), &d, |b, _| {
-                b.iter(|| forward_test(ptr::copy::<[usize; N]>, start, d, len))
+                b.iter(|| forward_test(ptr::copy::<[usize; N]>, start, d.unsigned_abs(), len))
             });
         } else {
-            let d = d.unsigned_abs();
-
             group.bench_with_input(BenchmarkId::new("utils::copy", d), &d, |b, _d| {
-                b.iter(|| backward_test(copy::<[usize; N]>, end, d, len))
+                b.iter(|| backward_test(copy::<[usize; N]>, end, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("utils::block_copy", d), &d, |b, _| {
-                b.iter(|| backward_test(block_copy::<[usize; N]>, end, d, len))
+                b.iter(|| backward_test(block_copy::<[usize; N]>, end, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), &d, |b, _| {
-                b.iter(|| backward_test(byte_copy::<[usize; N]>, end, d, len))
+                b.iter(|| backward_test(byte_copy::<[usize; N]>, end, d.unsigned_abs(), len))
             });
 
             group.bench_with_input(BenchmarkId::new("ptr::copy", d), &d, |b, _| {
-                b.iter(|| backward_test(ptr::copy::<[usize; N]>, end, d, len))
+                b.iter(|| backward_test(ptr::copy::<[usize; N]>, end, d.unsigned_abs(), len))
             });
         }
     }
