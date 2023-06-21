@@ -4,10 +4,10 @@ use rust_rotations::{ptr_reversal_rotate, utils::*};
 // use std::time::Duration;
 use std::ptr;
 
-fn seq<const count: usize>(size: usize) -> Vec<[usize; count]> {
-    let mut v = vec![[0; count]; size];
+fn seq<const N: usize>(size: usize) -> Vec<[usize; N]> {
+    let mut v = vec![[0; N]; size];
     for i in 0..size {
-        v[i] = [i + 1; count];
+        v[i] = [i + 1; N];
     }
     v
 }
@@ -62,28 +62,50 @@ fn backward_test<T>(
 /// [ 1  2  1  2  3  4  7  8  9]
 ///         [:\\\\\\:]
 /// ```
-fn case_copy<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy/{len}/{count}"));
-    let mut v = seq::<count>(len * 2 + 1);
+fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
+    let mut group = c.benchmark_group(format!("Copy/{len}/{N}"));
+    let mut v = seq::<N>(len * 2 + 1);
+    let start = *&v[..].as_mut_ptr();
+    let end = unsafe { start.add(len * 2 + 1) };
 
     for d in distances {
-        let start = *&v[..].as_mut_ptr();
+        if *d >= 0 {
+            let d = d.unsigned_abs();
 
-        group.bench_with_input(BenchmarkId::new("utils::copy", d), d, |b, _| {
-            b.iter(|| forward_test(copy::<[usize; count]>, start, *d, len))
-        });
+            group.bench_with_input(BenchmarkId::new("utils::copy", d), &d, |b, _d| {
+                b.iter(|| forward_test(copy::<[usize; N]>, start, d, len))
+            });
 
-        group.bench_with_input(BenchmarkId::new("utils::block_copy", d), d, |b, _| {
-            b.iter(|| forward_test(block_copy::<[usize; count]>, start, *d, len))
-        });
+            group.bench_with_input(BenchmarkId::new("utils::block_copy", d), &d, |b, _| {
+                b.iter(|| forward_test(block_copy::<[usize; N]>, start, d, len))
+            });
 
-        group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), d, |b, _| {
-            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, *d, len))
-        });
+            group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), &d, |b, _| {
+                b.iter(|| forward_test(byte_copy::<[usize; N]>, start, d, len))
+            });
 
-        group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _d| {
-            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, len))
-        });
+            group.bench_with_input(BenchmarkId::new("ptr::copy", d), &d, |b, _| {
+                b.iter(|| forward_test(ptr::copy::<[usize; N]>, start, d, len))
+            });
+        } else {
+            let d = d.unsigned_abs();
+
+            group.bench_with_input(BenchmarkId::new("utils::copy", d), &d, |b, _d| {
+                b.iter(|| backward_test(copy::<[usize; N]>, end, d, len))
+            });
+
+            group.bench_with_input(BenchmarkId::new("utils::block_copy", d), &d, |b, _| {
+                b.iter(|| backward_test(block_copy::<[usize; N]>, end, d, len))
+            });
+
+            group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), &d, |b, _| {
+                b.iter(|| backward_test(byte_copy::<[usize; N]>, end, d, len))
+            });
+
+            group.bench_with_input(BenchmarkId::new("ptr::copy", d), &d, |b, _| {
+                b.iter(|| backward_test(ptr::copy::<[usize; N]>, end, d, len))
+            });
+        }
     }
 
     group.finish();
@@ -98,8 +120,8 @@ fn case_copy<const count: usize>(c: &mut Criterion, len: usize, distances: &[usi
 /// [ 1  2  1  2  3  4  7  8  9]
 ///            [://////:]
 /// ```
-fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
-    let mut group = c.benchmark_group(format!("Copy distances/{len}/{count}"));
+fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: &[usize]) {
+    let mut group = c.benchmark_group(format!("Copy distances/{len}/{N}"));
     let max_distance = distances.iter().max().unwrap();
     let mut v = seq(len + max_distance);
 
@@ -108,27 +130,25 @@ fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distanc
         let end = unsafe { start.add(len + max_distance) };
 
         group.bench_with_input(BenchmarkId::new("utils::copy", d), d, |b, _| {
-            b.iter(|| backward_test(copy::<[usize; count]>, end, *d, len))
+            b.iter(|| backward_test(copy::<[usize; N]>, end, *d, len))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::block_copy", d), d, |b, _| {
-            b.iter(|| backward_test(block_copy::<[usize; count]>, end, *d, len))
+            b.iter(|| backward_test(block_copy::<[usize; N]>, end, *d, len))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::byte_copy", d), d, |b, _| {
-            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, *d, len))
+            b.iter(|| forward_test(byte_copy::<[usize; N]>, start, *d, len))
         });
 
         group.bench_with_input(
             BenchmarkId::new("ptr::copy_nonoverlapping", d),
             d,
-            |b, _| {
-                b.iter(|| forward_test(ptr::copy_nonoverlapping::<[usize; count]>, start, *d, len))
-            },
+            |b, _| b.iter(|| forward_test(ptr::copy_nonoverlapping::<[usize; N]>, start, *d, len)),
         );
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", d), d, |b, _| {
-            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, *d, len))
+            b.iter(|| forward_test(ptr::copy::<[usize; N]>, start, *d, len))
         });
     }
 
@@ -144,9 +164,9 @@ fn case_copy_distance<const count: usize>(c: &mut Criterion, len: usize, distanc
 /// [ 1  2  3  4  6  7  8  9  9]
 ///               [://////:]
 /// ```
-fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
+fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
     let max_len = *lens.iter().max().unwrap();
-    let mut group = c.benchmark_group(format!("Shift left/{max_len}/{count}"));
+    let mut group = c.benchmark_group(format!("Shift left/{max_len}/{N}"));
     let mut v = seq(max_len + 1);
 
     let start = *&v[..].as_mut_ptr();
@@ -154,23 +174,23 @@ fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
 
     for l in lens {
         group.bench_with_input(BenchmarkId::new("utils::copy", l), l, |b, _l| {
-            b.iter(|| backward_test(copy::<[usize; count]>, end, 1, *l))
+            b.iter(|| backward_test(copy::<[usize; N]>, end, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
-            b.iter(|| backward_test(ptr::copy::<[usize; count]>, end, 1, *l))
+            b.iter(|| backward_test(ptr::copy::<[usize; N]>, end, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::byte_copy", 1), l, |b, _| {
-            b.iter(|| backward_test(byte_copy::<[usize; count]>, end, 1, *l))
+            b.iter(|| backward_test(byte_copy::<[usize; N]>, end, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::shift_left", l), l, |b, _l| {
-            b.iter(|| unsafe { shift_left::<[usize; count]>(start.add(1), *l) })
+            b.iter(|| unsafe { shift_left::<[usize; N]>(start.add(1), *l) })
         });
 
         group.bench_with_input(BenchmarkId::new("ptr_reversal_rotate", l), l, |b, _l| {
-            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(1, start.add(1), *l) })
+            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; N]>(1, start.add(1), *l) })
         });
     }
 
@@ -186,32 +206,32 @@ fn case_shift_left<const count: usize>(c: &mut Criterion, lens: &[usize]) {
 /// [ 1  2  3  4  6  7  8  9  9]
 ///               [://////:]
 /// ```
-fn case_shift_right<const count: usize>(c: &mut Criterion, lens: &[usize]) {
+fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
     let max_len = *lens.iter().max().unwrap();
-    let mut group = c.benchmark_group(format!("Shift right/{max_len}/{count}"));
+    let mut group = c.benchmark_group(format!("Shift right/{max_len}/{N}"));
     let mut v = seq(max_len + 1);
 
     let start = *&v[..].as_mut_ptr();
 
     for l in lens {
         group.bench_with_input(BenchmarkId::new("utils::copy", l), l, |b, _l| {
-            b.iter(|| forward_test(copy::<[usize; count]>, start, 1, *l))
+            b.iter(|| forward_test(copy::<[usize; N]>, start, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("ptr::copy", l), l, |b, _l| {
-            b.iter(|| forward_test(ptr::copy::<[usize; count]>, start, 1, *l))
+            b.iter(|| forward_test(ptr::copy::<[usize; N]>, start, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::byte_copy", 1), l, |b, _| {
-            b.iter(|| forward_test(byte_copy::<[usize; count]>, start, 1, *l))
+            b.iter(|| forward_test(byte_copy::<[usize; N]>, start, 1, *l))
         });
 
         group.bench_with_input(BenchmarkId::new("utils::shift_right", l), l, |b, _l| {
-            b.iter(|| unsafe { shift_right::<[usize; count]>(start, *l) })
+            b.iter(|| unsafe { shift_right::<[usize; N]>(start, *l) })
         });
 
         group.bench_with_input(BenchmarkId::new("ptr_reversal_rotate", l), l, |b, _l| {
-            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; count]>(*l, start.add(*l), 1) })
+            b.iter(|| unsafe { ptr_reversal_rotate::<[usize; N]>(*l, start.add(*l), 1) })
         });
     }
 
@@ -238,45 +258,35 @@ fn bench_copy_distance(c: &mut Criterion) {
 
 /// cargo bench --bench=copies "Copy"
 fn bench_copy(c: &mut Criterion) {
-    let distances_10: [usize; 11] = core::array::from_fn(|i| i);
-    let distances_50: [usize; 51] = core::array::from_fn(|i| i);
-    let distances_500: [usize; 51] = core::array::from_fn(|i| i * 10);
+    let distances_10: [isize; 21] = core::array::from_fn(|i| i as isize - 10);
+    let distances_50: [isize; 101] = core::array::from_fn(|i| i as isize - 50);
+    let distances_500: [isize; 101] = core::array::from_fn(|i| (i as isize - 50) * 10);
+    let distances_100_000 = [
+        -100_000, -99_000, -75_000, -50_000, -25_000, -5000, 0, 5000, 25_000, 50_000, 75_000,
+        99_000, 100_000,
+    ];
+    let distances_200_000 = [
+        -200_000, -190_000, -150_000, -100_000, -75_000, -50_000, -10_000, 0, 10_000, 50_000,
+        75_000, 100_000, 150_000, 190_000, 200_000,
+    ];
 
     case_copy::<1>(c, 10, &distances_10);
     case_copy::<1>(c, 50, &distances_50);
     case_copy::<1>(c, 500, &distances_500);
-    case_copy::<1>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
-    case_copy::<1>(
-        c,
-        200_000,
-        &[
-            0, 10_000, 50_000, 75_000, 100_000, 150_000, 190_000, 200_000,
-        ],
-    );
+    case_copy::<1>(c, 100_000, &distances_100_000);
+    case_copy::<1>(c, 200_000, &distances_200_000);
 
     case_copy::<2>(c, 10, &distances_10);
     case_copy::<2>(c, 50, &distances_50);
     case_copy::<2>(c, 500, &distances_500);
-    case_copy::<2>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
-    case_copy::<2>(
-        c,
-        200_000,
-        &[
-            0, 10_000, 50_000, 75_000, 100_000, 150_000, 190_000, 200_000,
-        ],
-    );
+    case_copy::<2>(c, 100_000, &distances_100_000);
+    case_copy::<2>(c, 200_000, &distances_200_000);
 
     case_copy::<10>(c, 10, &distances_10);
     case_copy::<10>(c, 50, &distances_50);
     case_copy::<10>(c, 500, &distances_500);
-    case_copy::<10>(c, 100_000, &[0, 25_000, 50_000, 75_000, 99_000, 100_000]);
-    case_copy::<10>(
-        c,
-        200_000,
-        &[
-            0, 10_000, 50_000, 75_000, 100_000, 150_000, 190_000, 200_000,
-        ],
-    );
+    case_copy::<10>(c, 100_000, &distances_100_000);
+    case_copy::<10>(c, 200_000, &distances_200_000);
 }
 
 /// cargo bench --bench=copies "Shift left"
