@@ -180,7 +180,7 @@ fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize])
 
 /// ```text
 ///   start, dist = 3
-///   |               count = 4
+///   |               len = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///   [://////:]
 ///                       d = 3
@@ -203,7 +203,7 @@ fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: 
 ///
 /// ```text
 ///               start
-///               |   count = 4
+///               |   len = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///                  [:\\\\\\:]
 ///
@@ -233,7 +233,7 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 ///
 /// ```text
 ///   start
-///   | count = 4
+///   | len = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///   [:\\\\\\:]
 ///
@@ -245,7 +245,7 @@ fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
         "Shift right",
         c,
         lens,
-        &[-1],
+        &[1],
         vec![
             Copy,
             BlockCopy,
@@ -278,7 +278,7 @@ fn bench_copy_distance(c: &mut Criterion) {
 /// cargo bench --bench=copies "Copy"
 fn bench_copy(c: &mut Criterion) {
     let distances_10: [isize; 21] = core::array::from_fn(|i| i as isize - 10);
-    let distances_50: [isize; 101] = core::array::from_fn(|i| i as isize - 50);
+    let distances_40: [isize; 81] = core::array::from_fn(|i| i as isize - 40);
     let distances_500: [isize; 101] = core::array::from_fn(|i| (i as isize - 50) * 10);
     let distances_100_000 = [
         -100_000, -99_000, -75_000, -50_000, -25_000, -5000, 0, 5000, 25_000, 50_000, 75_000,
@@ -290,19 +290,19 @@ fn bench_copy(c: &mut Criterion) {
     ];
 
     case_copy::<1>(c, 10, &distances_10);
-    case_copy::<1>(c, 50, &distances_50);
+    case_copy::<1>(c, 40, &distances_40);
     case_copy::<1>(c, 500, &distances_500);
     case_copy::<1>(c, 100_000, &distances_100_000);
     case_copy::<1>(c, 200_000, &distances_200_000);
 
     case_copy::<2>(c, 10, &distances_10);
-    case_copy::<2>(c, 50, &distances_50);
+    case_copy::<2>(c, 40, &distances_40);
     case_copy::<2>(c, 500, &distances_500);
     case_copy::<2>(c, 100_000, &distances_100_000);
     case_copy::<2>(c, 200_000, &distances_200_000);
 
     case_copy::<10>(c, 10, &distances_10);
-    case_copy::<10>(c, 50, &distances_50);
+    case_copy::<10>(c, 50, &distances_40);
     case_copy::<10>(c, 500, &distances_500);
     case_copy::<10>(c, 100_000, &distances_100_000);
     case_copy::<10>(c, 200_000, &distances_200_000);
