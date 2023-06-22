@@ -67,13 +67,17 @@ fn case<const N: usize>(
     let max_distance = distances.iter().map(|d| d.unsigned_abs()).max().unwrap();
     let mut group = c.benchmark_group(format!("{name}/{max_len}/{N}"));
     let mut v = seq::<N>(max_len + max_distance + 1);
-    let start = *&v[..].as_mut_ptr();
+    let mut start = *&v[..].as_mut_ptr();
 
     for len in lens {
         for d in distances {
             for fun in &funs {
                 let l = len.clone() as isize;
                 let p = if lens.len() == 1 { d } else { &l };
+
+                if d < &0 {
+                    start = unsafe { start.add(max_distance + 1) };
+                }
 
                 match fun {
                     Copy => {
