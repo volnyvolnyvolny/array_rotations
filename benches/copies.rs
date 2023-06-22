@@ -47,15 +47,6 @@ use Fun::*;
 /// [ 1 14  .  4  .  .  .  .  .  .  .  .  . 14 15]
 /// [13 ~~ 15  4  .  .  .  .  .  .  .  . 13  . 15]
 /// ```
-fn test<T>(
-    copy: unsafe fn(src: *const T, dst: *mut T, count: usize),
-    start: *mut T,
-    distance: &isize,
-    count: usize,
-) {
-    unsafe { copy(start, start.offset(*distance), count) }
-}
-
 fn case<const N: usize>(
     name: &str,
     c: &mut Criterion,
@@ -66,8 +57,8 @@ fn case<const N: usize>(
     let max_len = *lens.iter().max().unwrap();
     let max_distance = distances.iter().map(|d| d.unsigned_abs()).max().unwrap();
     let mut group = c.benchmark_group(format!("{name}/{max_len}/{N}"));
-    let mut v = seq::<N>(max_len + max_distance + 1);
-    let mut start = *&v[..].as_mut_ptr();
+    let mut v = seq::<N>(max_len + max_distance);
+    let start = *&v[..].as_mut_ptr();
 
     for len in lens {
         for d in distances {
@@ -75,33 +66,43 @@ fn case<const N: usize>(
                 let l = len.clone() as isize;
                 let p = if lens.len() == 1 { d } else { &l };
 
-                if d < &0 {
-                    start = unsafe { start.add(max_distance + 1) };
-                }
+                let s = if d < &0 {
+                    unsafe { start.add(d.unsigned_abs()) }
+                } else {
+                    start
+                };
 
                 match fun {
                     Copy => {
                         group.bench_with_input(BenchmarkId::new("utils::copy", p), &p, |b, _| {
-                            b.iter(|| test(copy::<[usize; N]>, start, d, *len))
+                            b.iter(|| unsafe {
+                                copy::<[usize; N]>(s, s.offset(*d), *len);
+                            })
                         });
                     }
                     BlockCopy => {
                         group.bench_with_input(
                             BenchmarkId::new("utils::block_copy", p),
                             &p,
-                            |b, _| b.iter(|| test(block_copy::<[usize; N]>, start, d, *len)),
+                            |b, _| {
+                                b.iter(|| unsafe {
+                                    block_copy::<[usize; N]>(s, s.offset(*d), *len)
+                                })
+                            },
                         );
                     }
                     ByteCopy => {
                         group.bench_with_input(
                             BenchmarkId::new("utils::byte_copy", p),
                             &p,
-                            |b, _| b.iter(|| test(byte_copy::<[usize; N]>, start, d, *len)),
+                            |b, _| {
+                                b.iter(|| unsafe { byte_copy::<[usize; N]>(s, s.offset(*d), *len) })
+                            },
                         );
                     }
                     PtrCopy => {
                         group.bench_with_input(BenchmarkId::new("ptr::copy", p), &p, |b, _| {
-                            b.iter(|| test(ptr::copy::<[usize; N]>, start, d, *len))
+                            b.iter(|| unsafe { ptr::copy::<[usize; N]>(s, s.offset(*d), *len) })
                         });
                     }
                     PtrCopyNonoverlapping => {
@@ -109,8 +110,8 @@ fn case<const N: usize>(
                             BenchmarkId::new("ptr::copy_nonoverlapping", p),
                             p,
                             |b, _| {
-                                b.iter(|| {
-                                    test(ptr::copy_nonoverlapping::<[usize; N]>, start, d, *len)
+                                b.iter(|| unsafe {
+                                    ptr::copy_nonoverlapping::<[usize; N]>(s, s.offset(*d), *len)
                                 })
                             },
                         );
@@ -119,16 +120,14 @@ fn case<const N: usize>(
                         group.bench_with_input(
                             BenchmarkId::new("utils::shift_left", len),
                             len,
-                            |b, _l| {
-                                b.iter(|| unsafe { shift_left::<[usize; N]>(start.add(1), *len) })
-                            },
+                            |b, _l| b.iter(|| unsafe { shift_left::<[usize; N]>(s.add(1), *len) }),
                         );
                     }
                     ShiftRight => {
                         group.bench_with_input(
                             BenchmarkId::new("utils::shift_right", len),
                             len,
-                            |b, _l| b.iter(|| unsafe { shift_right::<[usize; N]>(start, *len) }),
+                            |b, _l| b.iter(|| unsafe { shift_right::<[usize; N]>(s, *len) }),
                         );
                     }
                     ReversalRotate => {
@@ -138,7 +137,7 @@ fn case<const N: usize>(
                                 len,
                                 |b, _l| {
                                     b.iter(|| unsafe {
-                                        ptr_reversal_rotate::<[usize; N]>(1, start.add(1), *len)
+                                        ptr_reversal_rotate::<[usize; N]>(1, s.add(1), *len)
                                     })
                                 },
                             );
@@ -148,7 +147,7 @@ fn case<const N: usize>(
                                 len,
                                 |b, _l| {
                                     b.iter(|| unsafe {
-                                        ptr_reversal_rotate::<[usize; N]>(*len, start, 1)
+                                        ptr_reversal_rotate::<[usize; N]>(*len, s, 1)
                                     })
                                 },
                             );
