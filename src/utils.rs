@@ -90,7 +90,9 @@ pub unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
         ptr::write(dst, ptr::read(src));
     }
 
-    if src >= dst {
+    if src == dst {
+        return;
+    } else if src > dst {
         for i in 0..count {
             _copy(src, dst, i);
         }
@@ -374,10 +376,10 @@ pub unsafe fn swap_backward<T>(x: *mut T, y: *mut T, count: usize) {
 mod tests {
     use crate::*;
 
-    fn seq_multi<const count: usize>(size: usize) -> Vec<[usize; count]> {
-        let mut v = vec![[0; count]; size];
+    fn seq_multi<const N: usize>(size: usize) -> Vec<[usize; N]> {
+        let mut v = vec![[0; N]; size];
         for i in 0..size {
-            v[i] = [i + 1; count];
+            v[i] = [i + 1; N];
         }
         v
     }
