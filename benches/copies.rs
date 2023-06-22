@@ -22,6 +22,8 @@ enum Fun {
     ReversalRotate,
 }
 
+use Fun::*;
+
 /// ```text
 ///  start
 ///  | distance = +12                  count = 3
@@ -70,16 +72,14 @@ fn case<const N: usize>(
     for len in lens {
         for d in distances {
             for fun in &funs {
-                use Fun::*;i
-                let p = if lens.len() == 1 { d } else { &(len.clone() as isize) };
+                let l = len.clone() as isize;
+                let p = if lens.len() == 1 { d } else { &l };
 
                 match fun {
                     Copy => {
-                        group.bench_with_input(
-                            BenchmarkId::new("utils::copy", p),
-                            &p,
-                            |b, _| b.iter(|| test(copy::<[usize; N]>, start, d, *len)),
-                        );
+                        group.bench_with_input(BenchmarkId::new("utils::copy", p), &p, |b, _| {
+                            b.iter(|| test(copy::<[usize; N]>, start, d, *len))
+                        });
                     }
                     BlockCopy => {
                         group.bench_with_input(
@@ -169,8 +169,6 @@ fn case<const N: usize>(
 ///         [:\\\\\\:]
 /// ```
 fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
-    use Fun::*;
-
     case::<N>(
         "Copy",
         c,
@@ -190,8 +188,6 @@ fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize])
 ///            [://////:]
 /// ```
 fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
-    use Fun::*;
-
     case::<N>(
         "Copy distances",
         c,
@@ -215,8 +211,6 @@ fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: 
 ///               [://////:]
 /// ```
 fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    use Fun::*;
-
     case::<N>(
         "Shift left",
         c,
@@ -247,8 +241,6 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 ///      [://////:]
 /// ```
 fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    use Fun::*;
-
     case::<N>(
         "Shift right",
         c,
