@@ -305,7 +305,7 @@ fn bench_copy(c: &mut Criterion) {
     case_copy::<2>(c, 200_000, &distances_200_000);
 
     case_copy::<10>(c, 10, &distances_10);
-    case_copy::<10>(c, 50, &distances_40);
+    case_copy::<10>(c, 40, &distances_40);
     case_copy::<10>(c, 500, &distances_500);
     case_copy::<10>(c, 100_000, &distances_100_000);
     case_copy::<10>(c, 200_000, &distances_200_000);
