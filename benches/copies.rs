@@ -264,18 +264,27 @@ fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 fn bench_copy_distance(c: &mut Criterion) {
     case_copy_distance::<1>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
     case_copy_distance::<1>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
+    case_copy_distance::<1>(c, 50, &[50, 75, 100, 150, 250]);
     case_copy_distance::<1>(c, 100, &[100, 150, 200, 300, 500]);
     case_copy_distance::<1>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
 
     case_copy_distance::<2>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
     case_copy_distance::<2>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
+    case_copy_distance::<2>(c, 50, &[50, 75, 100, 150, 250]);
     case_copy_distance::<2>(c, 100, &[100, 150, 200, 300, 500]);
     case_copy_distance::<2>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
 
     case_copy_distance::<4>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
     case_copy_distance::<4>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
+    case_copy_distance::<4>(c, 50, &[50, 75, 100, 150, 250]);
     case_copy_distance::<4>(c, 100, &[100, 150, 200, 300, 500]);
     case_copy_distance::<4>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
+
+    case_copy_distance::<10>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
+    case_copy_distance::<10>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
+    case_copy_distance::<10>(c, 50, &[50, 75, 100, 150, 250]);
+    case_copy_distance::<10>(c, 100, &[100, 150, 200, 300, 500]);
+    case_copy_distance::<10>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
 }
 
 /// cargo bench --bench=copies "Copy"
