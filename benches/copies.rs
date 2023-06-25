@@ -322,28 +322,36 @@ fn bench_copy(c: &mut Criterion) {
 
 /// cargo bench --bench=copies "Shift left"
 fn bench_shift_left(c: &mut Criterion) {
-    let lens: [usize; 50] = core::array::from_fn(|i| i + 1);
+    let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
+    let lens_1000: [usize; 100] = core::array::from_fn(|i| i * 10 + 1);
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
-    case_shift_left::<1>(c, &lens);
+    case_shift_left::<1>(c, &lens_100);
+    case_shift_left::<1>(c, &lens_1000);
     case_shift_left::<1>(c, &lens_100_000);
 
-    case_shift_left::<2>(c, &lens);
+    case_shift_left::<2>(c, &lens_100);
+    case_shift_left::<2>(c, &lens_1000);
     case_shift_left::<2>(c, &lens_100_000);
 
-    case_shift_left::<10>(c, &lens);
+    case_shift_left::<10>(c, &lens_100);
+    case_shift_left::<10>(c, &lens_1000);
     case_shift_left::<10>(c, &lens_100_000);
 
-    case_shift_left::<15>(c, &lens);
+    case_shift_left::<15>(c, &lens_100);
+    case_shift_left::<15>(c, &lens_1000);
     case_shift_left::<15>(c, &lens_100_000);
 
-    case_shift_left::<20>(c, &lens);
+    case_shift_left::<20>(c, &lens_100);
+    case_shift_left::<20>(c, &lens_1000);
     case_shift_left::<20>(c, &lens_100_000);
 
-    case_shift_left::<40>(c, &lens);
+    case_shift_left::<40>(c, &lens_100);
+    case_shift_left::<40>(c, &lens_1000);
     case_shift_left::<40>(c, &lens_100_000);
 
-    case_shift_left::<80>(c, &lens);
+    case_shift_left::<80>(c, &lens_100);
+    case_shift_left::<80>(c, &lens_1000);
     case_shift_left::<80>(c, &lens_100_000);
 }
 
