@@ -361,6 +361,11 @@ fn bench_shift_left(c: &mut Criterion) {
     case_shift_left::<80>(c, &lens_1000);
     case_shift_left::<80>(c, &lens_10_000);
     case_shift_left::<80>(c, &lens_100_000);
+
+    case_shift_left::<160>(c, &lens_100);
+    case_shift_left::<160>(c, &lens_1000);
+    case_shift_left::<160>(c, &lens_10_000);
+    case_shift_left::<160>(c, &lens_100_000);
 }
 
 /// cargo bench --bench=copies "Shift right"
