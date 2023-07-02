@@ -126,7 +126,7 @@ fn case<const N: usize>(
 ) {
     let max_len = *lens.iter().max().unwrap();
     let max_distance = distances.iter().map(|d| d.unsigned_abs()).max().unwrap();
-    let mut group = c.benchmark_group(format!("{name}/{max_len}/{N}"));
+    let mut g = c.benchmark_group(format!("{name}/{max_len}/{N}"));
     let mut v = seq::<N>(max_len + max_distance);
     let start = *&v[..].as_mut_ptr();
 
@@ -142,12 +142,12 @@ fn case<const N: usize>(
                     start
                 };
 
-                run_fun::<N>(&mut group, *p, *len, *d, s, fun);
+                run_fun::<N>(&mut g, *p, *len, *d, s, fun);
             }
         }
     }
 
-    group.finish();
+    g.finish();
 }
 
 /// ```text
