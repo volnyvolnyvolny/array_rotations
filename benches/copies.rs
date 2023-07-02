@@ -209,7 +209,7 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
         lens,
         &[-1],
         // vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy],
-        vec![Copy, BlockCopy, PtrCopy],
+        vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy],
     );
 }
 
