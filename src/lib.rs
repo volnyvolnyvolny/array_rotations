@@ -43,7 +43,7 @@ pub use utils::*;
 pub mod gm;
 pub use gm::*;
 
-/// # Edge case (left || right = 1)
+/// # Edge case (left && right <= 1)
 ///
 /// Rotates the range `[mid-1, mid+right)` or `[mid-left, mid+1)` such that the element
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
@@ -53,7 +53,8 @@ pub use gm::*;
 ///
 /// ## Safety
 ///
-/// The specified range must be valid for reading and writing.
+/// 1. The specified range must be valid for reading and writing;
+/// 2. `left <= 1` and `right <= 1`.
 #[inline(always)]
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     if left == 0 || right == 0 {
@@ -77,8 +78,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
         shift_right(start, left);
         start.write(tmp);
     } else {
-        // fallback
-        ptr_direct_rotate::<T>(left, mid, right);
+        panic!("left > 1 or right > 1");
     }
 }
 
