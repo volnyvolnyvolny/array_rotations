@@ -234,8 +234,7 @@ pub unsafe fn block_copy<T>(src: *const T, dst: *mut T, count: usize) {
 /// ```
 pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
     if size_of::<T>() < 2 * size_of::<usize>() {
-        copy(arr, arr.sub(1), count);
-        // byte_copy(arr, arr.sub(1), count);
+        byte_copy(arr, arr.sub(1), count);
     } else if size_of::<T>() <= 10 * size_of::<usize>() {
         copy(arr, arr.sub(1), count);
     } else {

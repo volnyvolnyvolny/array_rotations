@@ -3,6 +3,7 @@ use criterion::{
 };
 use rust_rotations::{ptr_reversal_rotate, utils::*};
 
+use std::collections::HashMap;
 use std::ptr;
 
 fn seq<const N: usize>(size: usize) -> Vec<[usize; N]> {
@@ -107,7 +108,6 @@ fn run_fun<const N: usize>(
 /// ```
 ///
 /// ```text
-///                                              end
 ///   distance = -12                    count = 3 |
 /// [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
 ///   [:\\\:]                    <------  [:///:]
@@ -117,33 +117,28 @@ fn run_fun<const N: usize>(
 /// [ 1 14  .  4  .  .  .  .  .  .  .  .  . 14 15]
 /// [13 ~~ 15  4  .  .  .  .  .  .  .  . 13  . 15]
 /// ```
-fn case<const N: usize>(
+fn case_copy<const N: usize>(
     name: &str,
     c: &mut Criterion,
-    lens: &[usize],
+    len: usize,
     distances: &[isize],
     funs: Vec<Fun>,
 ) {
-    let max_len = *lens.iter().max().unwrap();
+    let mut g = c.benchmark_group(format!("{name}/{len}/{N}"));
+
     let max_distance = distances.iter().map(|d| d.unsigned_abs()).max().unwrap();
-    let mut g = c.benchmark_group(format!("{name}/{max_len}/{N}"));
-    let mut v = seq::<N>(max_len + max_distance);
+    let mut v = seq::<N>(len + max_distance);
     let start = *&v[..].as_mut_ptr();
 
-    for len in lens {
-        for d in distances {
-            for fun in &funs {
-                let l = *len as isize;
-                let p = if lens.len() == 1 { d } else { &l };
+    for d in distances {
+        for fun in &funs {
+            let s = if d < &0 {
+                unsafe { start.add(d.unsigned_abs()) }
+            } else {
+                start
+            };
 
-                let s = if d < &0 {
-                    unsafe { start.add(d.unsigned_abs()) }
-                } else {
-                    start
-                };
-
-                run_fun::<N>(&mut g, *p, *len, *d, s, fun);
-            }
+            run_fun::<N>(&mut g, *d, len, *d, s, fun);
         }
     }
 
@@ -151,39 +146,42 @@ fn case<const N: usize>(
 }
 
 /// ```text
-///   count = 4
-///   start
-///   |
+///   start, dist = 5
+///   |               len = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///   [://////:]
-///         distance = 2
-/// [ 1  2  1  2  3  4  7  8  9]
-///         [:\\\\\\:]
+///
+/// [ 1  2  3  4  5  1  2  3  4]
+///                  [://////:]
 /// ```
-fn case_copy<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
-    case::<N>(
-        "Copy",
+fn case_copy_nonoverlapping<const N: usize>(
+    c: &mut Criterion,
+    len: usize,
+    distances: &HashMap<usize, [isize; 7]>,
+) {
+    case_copy::<N>(
+        "Copy nonoverlapping",
         c,
-        &[len],
-        distances,
-        vec![Copy, BlockCopy, ByteCopy, PtrCopy],
+        len,
+        distances.get(&len).unwrap(),
+        vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
     );
 }
 
 /// ```text
-///   start, dist = 3
+///   start, dist = 2
 ///   |               len = 4
 /// [ 1  2  3  4  5  6  7  8  9]
 ///   [://////:]
-///                       d = 3
+///
 /// [ 1  2  1  2  3  4  7  8  9]
-///            [://////:]
+///         [://////:]
 /// ```
-fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
-    case::<N>(
-        "Copy distances",
+fn case_copy_overlapping<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
+    case_copy::<N>(
+        "Copy",
         c,
-        &[len],
+        len,
         distances,
         vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
     );
@@ -203,17 +201,25 @@ fn case_copy_distance<const N: usize>(c: &mut Criterion, len: usize, distances: 
 ///               [://////:]
 /// ```
 fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    case::<N>(
-        "Shift left",
-        c,
-        lens,
-        &[-1],
-        // vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy],
-        vec![Copy, BlockCopy, ReversalRotate, PtrCopy],
-    );
+    let funs = vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy];
+
+    let max_len = *lens.iter().max().unwrap();
+    let mut g = c.benchmark_group(format!("Shift left/{max_len}/{N}"));
+    let mut v = seq::<N>(max_len + 1);
+    let start = *&v[..].as_mut_ptr();
+
+    for len in lens {
+        for fun in &funs {
+            let s = unsafe { start.add(1) };
+
+            run_fun::<N>(&mut g, *len as isize, *len, -1, s, fun);
+        }
+    }
+
+    g.finish();
 }
 
-/// Shift left
+/// Shift right
 ///
 /// Example:
 ///
@@ -227,41 +233,54 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 ///      [://////:]
 /// ```
 fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    case::<N>(
-        "Shift right",
-        c,
-        lens,
-        &[1],
-        vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy],
-    );
+    let funs = vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy];
+
+    let max_len = *lens.iter().max().unwrap();
+    let mut g = c.benchmark_group(format!("Shift right/{max_len}/{N}"));
+    let mut v = seq::<N>(max_len + 1);
+    let start = *&v[..].as_mut_ptr();
+
+    for len in lens {
+        for fun in &funs {
+            run_fun::<N>(&mut g, *len as isize, *len, 1, start, fun);
+        }
+    }
+
+    g.finish();
 }
 
-/// cargo bench --bench=copies "Copy distance"
-fn bench_copy_distance(c: &mut Criterion) {
-    // non_overlapping
-    case_copy_distance::<1>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
-    case_copy_distance::<1>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
-    case_copy_distance::<1>(c, 50, &[50, 75, 100, 150, 250]);
-    case_copy_distance::<1>(c, 100, &[100, 150, 200, 300, 500]);
-    case_copy_distance::<1>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
+/// cargo bench --bench=copies "Copy nonoverlapping"
+fn bench_copy_nonoverlapping(c: &mut Criterion) {
+    let lens = [1, 2, 50, 100, 100_000];
 
-    case_copy_distance::<2>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
-    case_copy_distance::<2>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
-    case_copy_distance::<2>(c, 50, &[50, 75, 100, 150, 250]);
-    case_copy_distance::<2>(c, 100, &[100, 150, 200, 300, 500]);
-    case_copy_distance::<2>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
+    let distances = HashMap::from([
+        (1, [1, 2, 3, 5, 20, 50, 100]),
+        (2, [2, 3, 4, 5, 20, 50, 100]),
+        (50, [50, 75, 100, 150, 250, 300, 500]),
+        (100, [100, 150, 200, 300, 500, 1000, 1500]),
+        (
+            100_000,
+            [
+                100_000, 150_000, 200_000, 300_000, 500_000, 1000_000, 1_500_000,
+            ],
+        ),
+    ]);
 
-    case_copy_distance::<4>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
-    case_copy_distance::<4>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
-    case_copy_distance::<4>(c, 50, &[50, 75, 100, 150, 250]);
-    case_copy_distance::<4>(c, 100, &[100, 150, 200, 300, 500]);
-    case_copy_distance::<4>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
+    for l in lens {
+        case_copy_nonoverlapping::<1>(c, l, &distances);
+    }
 
-    case_copy_distance::<10>(c, 1, &[1, 2, 3, 5, 20, 50, 100]);
-    case_copy_distance::<10>(c, 2, &[2, 3, 4, 5, 20, 50, 100]);
-    case_copy_distance::<10>(c, 50, &[50, 75, 100, 150, 250]);
-    case_copy_distance::<10>(c, 100, &[100, 150, 200, 300, 500]);
-    case_copy_distance::<10>(c, 100_000, &[100_000, 150_000, 200_000, 300_000, 500_000]);
+    for l in lens {
+        case_copy_nonoverlapping::<2>(c, l, &distances);
+    }
+
+    for l in lens {
+        case_copy_nonoverlapping::<4>(c, l, &distances);
+    }
+
+    for l in lens {
+        case_copy_nonoverlapping::<10>(c, l, &distances);
+    }
 }
 
 /// cargo bench --bench=copies "Copy"
@@ -278,23 +297,23 @@ fn bench_copy(c: &mut Criterion) {
         75_000, 100_000, 150_000, 190_000, 200_000,
     ];
 
-    case_copy::<1>(c, 10, &distances_10);
-    case_copy::<1>(c, 40, &distances_40);
-    case_copy::<1>(c, 500, &distances_500);
-    case_copy::<1>(c, 100_000, &distances_100_000);
-    case_copy::<1>(c, 200_000, &distances_200_000);
+    case_copy_overlapping::<1>(c, 10, &distances_10);
+    case_copy_overlapping::<1>(c, 40, &distances_40);
+    case_copy_overlapping::<1>(c, 500, &distances_500);
+    case_copy_overlapping::<1>(c, 100_000, &distances_100_000);
+    case_copy_overlapping::<1>(c, 200_000, &distances_200_000);
 
-    case_copy::<2>(c, 10, &distances_10);
-    case_copy::<2>(c, 40, &distances_40);
-    case_copy::<2>(c, 500, &distances_500);
-    case_copy::<2>(c, 100_000, &distances_100_000);
-    case_copy::<2>(c, 200_000, &distances_200_000);
+    case_copy_overlapping::<2>(c, 10, &distances_10);
+    case_copy_overlapping::<2>(c, 40, &distances_40);
+    case_copy_overlapping::<2>(c, 500, &distances_500);
+    case_copy_overlapping::<2>(c, 100_000, &distances_100_000);
+    case_copy_overlapping::<2>(c, 200_000, &distances_200_000);
 
-    case_copy::<10>(c, 10, &distances_10);
-    case_copy::<10>(c, 40, &distances_40);
-    case_copy::<10>(c, 500, &distances_500);
-    case_copy::<10>(c, 100_000, &distances_100_000);
-    case_copy::<10>(c, 200_000, &distances_200_000);
+    case_copy_overlapping::<10>(c, 10, &distances_10);
+    case_copy_overlapping::<10>(c, 40, &distances_40);
+    case_copy_overlapping::<10>(c, 500, &distances_500);
+    case_copy_overlapping::<10>(c, 100_000, &distances_100_000);
+    case_copy_overlapping::<10>(c, 200_000, &distances_200_000);
 }
 
 /// cargo bench --bench=copies "Shift left"
@@ -393,7 +412,7 @@ criterion_group! {
 
     config = Criterion::default();
 
-    targets = bench_copy, bench_copy_distance, bench_shift_left, bench_shift_right
+    targets = bench_copy, bench_copy_nonoverlapping, bench_shift_left, bench_shift_right
 }
 
 criterion_main!(benches);
