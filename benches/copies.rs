@@ -298,7 +298,7 @@ fn case_copy_nonoverlapping_by_len<const N: usize>(c: &mut Criterion, lens: &[us
 
     let max_len = *lens.iter().max().unwrap();
 
-    let mut v = seq::<N>(max_len + 1000);
+    let mut v = seq::<N>(2 * max_len + 1000);
     let start = *&v[..].as_mut_ptr();
 
     for len in lens {
