@@ -96,6 +96,25 @@ fn run_fun<const N: usize>(
 }
 
 /// ```text
+///   start, dist = 2
+///   |               len = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///
+/// [ 1  2  1  2  3  4  7  8  9]
+///         [://////:]
+/// ```
+fn case_copy_overlapping<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
+    case_copy::<N>(
+        "Copy",
+        c,
+        len,
+        distances,
+        vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
+    );
+}
+
+/// ```text
 ///  start
 ///  | distance = +12                  count = 3
 /// [1  2  3  4  5  6  7  8  9 10 11 12 13 14 15]
@@ -143,48 +162,6 @@ fn case_copy<const N: usize>(
     }
 
     g.finish();
-}
-
-/// ```text
-///   start, dist = 5
-///   |               len = 4
-/// [ 1  2  3  4  5  6  7  8  9]
-///   [://////:]
-///
-/// [ 1  2  3  4  5  1  2  3  4]
-///                  [://////:]
-/// ```
-fn case_copy_nonoverlapping<const N: usize>(
-    c: &mut Criterion,
-    len: usize,
-    distances: &HashMap<usize, [isize; 7]>,
-) {
-    case_copy::<N>(
-        "Copy nonoverlapping",
-        c,
-        len,
-        distances.get(&len).unwrap(),
-        vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
-    );
-}
-
-/// ```text
-///   start, dist = 2
-///   |               len = 4
-/// [ 1  2  3  4  5  6  7  8  9]
-///   [://////:]
-///
-/// [ 1  2  1  2  3  4  7  8  9]
-///         [://////:]
-/// ```
-fn case_copy_overlapping<const N: usize>(c: &mut Criterion, len: usize, distances: &[isize]) {
-    case_copy::<N>(
-        "Copy",
-        c,
-        len,
-        distances,
-        vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
-    );
 }
 
 /// Shift left
@@ -249,6 +226,29 @@ fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
     g.finish();
 }
 
+/// ```text
+///   start, dist = 5
+///   |               len = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///
+/// [ 1  2  3  4  5  1  2  3  4]
+///                  [://////:]
+/// ```
+fn case_copy_nonoverlapping<const N: usize>(
+    c: &mut Criterion,
+    len: usize,
+    distances: &HashMap<usize, [isize; 7]>,
+) {
+    case_copy::<N>(
+        "Copy nonoverlapping",
+        c,
+        len,
+        distances.get(&len).unwrap(),
+        vec![Copy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
+    );
+}
+
 /// cargo bench --bench=copies "Copy nonoverlapping"
 fn bench_copy_nonoverlapping(c: &mut Criterion) {
     let lens = [1, 2, 50, 100, 100_000];
@@ -281,6 +281,55 @@ fn bench_copy_nonoverlapping(c: &mut Criterion) {
     for l in lens {
         case_copy_nonoverlapping::<10>(c, l, &distances);
     }
+}
+
+/// ```text
+///   start, dist = 2
+///   |               len = 4
+/// [ 1  2  3  4  5  6  7  8  9]
+///   [://////:]
+///
+/// [ 1  2  1  2  3  4  7  8  9]
+///         [://////:]
+/// ```
+fn case_copy_nonoverlapping_by_len<const N: usize>(c: &mut Criterion, lens: &[usize]) {
+    let funs = vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy];
+
+    let mut g = c.benchmark_group(format!("Copy nonoverlapping/{N}"));
+
+    let max_len = *lens.iter().max().unwrap();
+
+    let mut v = seq::<N>(max_len + 1000);
+    let start = *&v[..].as_mut_ptr();
+
+    for len in lens {
+        let d = (len + 1000) as isize;
+
+        for fun in &funs {
+            run_fun::<N>(&mut g, *len as isize, *len, d, start, fun);
+        }
+    }
+
+    g.finish();
+}
+
+/// cargo bench --bench=copies "Copy nonoverlapping"
+fn bench_copy_nonoverlapping_by_len(c: &mut Criterion) {
+    case_copy_nonoverlapping_by_len::<1>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
+    case_copy_nonoverlapping_by_len::<1>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
+    case_copy_nonoverlapping_by_len::<1>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+
+    case_copy_nonoverlapping_by_len::<2>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
+    case_copy_nonoverlapping_by_len::<2>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
+    case_copy_nonoverlapping_by_len::<2>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+
+    case_copy_nonoverlapping_by_len::<4>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
+    case_copy_nonoverlapping_by_len::<4>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
+    case_copy_nonoverlapping_by_len::<4>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+
+    case_copy_nonoverlapping_by_len::<10>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
+    case_copy_nonoverlapping_by_len::<10>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
+    case_copy_nonoverlapping_by_len::<10>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
 }
 
 /// cargo bench --bench=copies "Copy"
@@ -412,7 +461,7 @@ criterion_group! {
 
     config = Criterion::default();
 
-    targets = bench_copy, bench_copy_nonoverlapping, bench_shift_left, bench_shift_right
+    targets = bench_copy, bench_copy_nonoverlapping, bench_copy_nonoverlapping_by_len, bench_shift_left, bench_shift_right
 }
 
 criterion_main!(benches);
