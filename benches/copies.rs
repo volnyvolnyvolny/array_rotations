@@ -94,7 +94,6 @@ fn run_fun<const N: usize>(
         }
     }
 }
-
 /// ```text
 ///   start, dist = 2
 ///   |               len = 4
@@ -293,9 +292,9 @@ fn bench_copy_nonoverlapping(c: &mut Criterion) {
 ///         [://////:]
 /// ```
 fn case_copy_nonoverlapping_by_len<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    let funs = vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy];
+    let funs = vec![Copy, ByteCopy, PtrCopyNonoverlapping, PtrCopy];
 
-    let mut g = c.benchmark_group(format!("Copy nonoverlapping/{N}"));
+    let mut g = c.benchmark_group(format!("Copy nonoverlapping by len/{N}"));
 
     let max_len = *lens.iter().max().unwrap();
 
