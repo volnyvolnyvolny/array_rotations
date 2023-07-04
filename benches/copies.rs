@@ -294,9 +294,8 @@ fn bench_copy_nonoverlapping(c: &mut Criterion) {
 fn case_copy_nonoverlapping_by_len<const N: usize>(c: &mut Criterion, lens: &[usize]) {
     let funs = vec![Copy, ByteCopy, PtrCopyNonoverlapping, PtrCopy];
 
-    let mut g = c.benchmark_group(format!("Copy nonoverlapping by len/{N}"));
-
     let max_len = *lens.iter().max().unwrap();
+    let mut g = c.benchmark_group(format!("Copy nonoverlapping by len/{max_len}/{N}"));
 
     let mut v = seq::<N>(2 * max_len + 1000);
     let start = *&v[..].as_mut_ptr();
@@ -314,21 +313,29 @@ fn case_copy_nonoverlapping_by_len<const N: usize>(c: &mut Criterion, lens: &[us
 
 /// cargo bench --bench=copies "Copy nonoverlapping"
 fn bench_copy_nonoverlapping_by_len(c: &mut Criterion) {
-    case_copy_nonoverlapping_by_len::<1>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
-    case_copy_nonoverlapping_by_len::<1>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
-    case_copy_nonoverlapping_by_len::<1>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+    let lens_500 = &[1, 2, 4, 25, 50, 100, 200, 500];
+    let lens_10_000 = &[500, 1000, 2000, 4000, 6000, 8000, 10_000];
+    let lens_100_000 = &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000];
 
-    case_copy_nonoverlapping_by_len::<2>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
-    case_copy_nonoverlapping_by_len::<2>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
-    case_copy_nonoverlapping_by_len::<2>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+    case_copy_nonoverlapping_by_len::<1>(c, lens_500);
+    case_copy_nonoverlapping_by_len::<1>(c, lens_10_000);
+    case_copy_nonoverlapping_by_len::<1>(c, lens_100_000);
 
-    case_copy_nonoverlapping_by_len::<4>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
-    case_copy_nonoverlapping_by_len::<4>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
-    case_copy_nonoverlapping_by_len::<4>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+    case_copy_nonoverlapping_by_len::<2>(c, lens_500);
+    case_copy_nonoverlapping_by_len::<2>(c, lens_10_000);
+    case_copy_nonoverlapping_by_len::<2>(c, lens_100_000);
 
-    case_copy_nonoverlapping_by_len::<10>(c, &[1, 2, 4, 25, 50, 100, 200, 500]);
-    case_copy_nonoverlapping_by_len::<10>(c, &[500, 1000, 2000, 4000, 6000, 8000, 10_000]);
-    case_copy_nonoverlapping_by_len::<10>(c, &[10_000, 20_000, 40_000, 60_000, 80_000, 100_000]);
+    case_copy_nonoverlapping_by_len::<4>(c, lens_500);
+    case_copy_nonoverlapping_by_len::<4>(c, lens_10_000);
+    case_copy_nonoverlapping_by_len::<4>(c, lens_100_000);
+
+    case_copy_nonoverlapping_by_len::<10>(c, lens_500);
+    case_copy_nonoverlapping_by_len::<10>(c, lens_10_000);
+    case_copy_nonoverlapping_by_len::<10>(c, lens_100_000);
+
+    case_copy_nonoverlapping_by_len::<20>(c, lens_500);
+    case_copy_nonoverlapping_by_len::<20>(c, lens_10_000);
+    case_copy_nonoverlapping_by_len::<20>(c, lens_100_000);
 }
 
 /// cargo bench --bench=copies "Copy"
