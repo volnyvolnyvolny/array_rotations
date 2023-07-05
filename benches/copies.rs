@@ -109,7 +109,7 @@ fn case_copy_overlapping<const N: usize>(c: &mut Criterion, len: usize, distance
         c,
         len,
         distances,
-        vec![Copy, BlockCopy, ByteCopy, PtrCopyNonoverlapping, PtrCopy],
+        vec![Copy, BlockCopy, ByteCopy, PtrCopy],
     );
 }
 
