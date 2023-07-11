@@ -203,7 +203,7 @@ fn case_copy<const N: usize>(
 /// ```
 fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
     let funs = vec![
-        /* Copy, BlockCopy, ByteCopy, ReversalRotate, */ PtrCopy,
+        Copy, /* BlockCopy, ByteCopy, ReversalRotate, */ PtrCopy,
     ];
 
     let max_len = *lens.iter().max().unwrap();
