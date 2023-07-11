@@ -206,14 +206,14 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 
     let max_len = *lens.iter().max().unwrap();
     let mut g = c.benchmark_group(format!("Shift left/{max_len}/{N}"));
-    let mut v = seq::<N>(max_len + 1);
+    let mut v = seq::<N>(max_len + 2);
     let start = *&v[..].as_mut_ptr();
 
     for len in lens {
         for fun in &funs {
             let s = unsafe { start.add(1) };
 
-            run_fun::<N>(&mut g, *len as isize, *len, -1, s, fun);
+            run_fun::<N>(&mut g, *len as isize, *len, 1, s, fun);
         }
     }
 
