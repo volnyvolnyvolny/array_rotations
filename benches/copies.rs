@@ -1,3 +1,28 @@
+/*
+Copyright (C) 2023 Valentin Vasilev (3volny@gmail.com).
+*/
+
+/*
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO↓FTWARE.
+*/
+
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, BenchmarkId, Criterion,
 };
@@ -374,8 +399,8 @@ fn bench_copy(c: &mut Criterion) {
 /// cargo bench --bench=copies "Shift left"
 fn bench_shift_left(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
-    let lens_1000: [usize; 101] = core::array::from_fn(|i| i * 10 + 1);
-    let lens_10_000: [usize; 101] = core::array::from_fn(|i| i * 100 + 1);
+    let lens_1000: [usize; 100] = core::array::from_fn(|i| i * 10 + 1);
+    let lens_10_000: [usize; 100] = core::array::from_fn(|i| i * 100 + 1);
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_left::<1>(c, &lens_100);
@@ -422,8 +447,10 @@ fn bench_shift_left(c: &mut Criterion) {
 /// cargo bench --bench=copies "Shift right"
 fn bench_shift_right(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
-    let lens_1000: [usize; 101] = core::array::from_fn(|i| i * 10 + 1);
-    let lens_10_000: [usize; 101] = core::array::from_fn(|i| i * 100 + 1);
+    let lens_1000: [usize; 101] =
+        core::array::from_fn(|i| if i == 101 { 1000 } else { i * 10 + 1 });
+    let lens_10_000: [usize; 101] =
+        core::array::from_fn(|i| if i == 101 { 10_000 } else { i * 100 + 1 });
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_right::<1>(c, &lens_100);

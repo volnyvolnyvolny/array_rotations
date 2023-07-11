@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2023 Valentin Vasilev.
+Copyright (C) 2023 Valentin Vasilev (3volny@gmail.com).
 */
 
 /*
