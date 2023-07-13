@@ -202,9 +202,7 @@ fn case_copy<const N: usize>(
 ///               [://////:]
 /// ```
 fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    let funs = vec![
-        /* Copy, BlockCopy, ByteCopy, */ ReversalRotate, /* PtrCopy */
-    ];
+    let funs = vec![Copy, BlockCopy, ByteCopy, PtrCopy];
 
     let max_len = *lens.iter().max().unwrap();
     let mut g = c.benchmark_group(format!("Shift left/{max_len}/{N}"));
@@ -237,7 +235,7 @@ fn case_shift_left<const N: usize>(c: &mut Criterion, lens: &[usize]) {
 ///      [://////:]
 /// ```
 fn case_shift_right<const N: usize>(c: &mut Criterion, lens: &[usize]) {
-    let funs = vec![Copy, BlockCopy, ByteCopy, ReversalRotate, PtrCopy];
+    let funs = vec![Copy, BlockCopy, ByteCopy, PtrCopy];
 
     let max_len = *lens.iter().max().unwrap();
     let mut g = c.benchmark_group(format!("Shift right/{max_len}/{N}"));
@@ -402,8 +400,10 @@ fn bench_copy(c: &mut Criterion) {
 /// cargo bench --bench=copies "Shift left"
 fn bench_shift_left(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
-    let lens_1000: [usize; 100] = core::array::from_fn(|i| i * 10 + 1);
-    let lens_10_000: [usize; 100] = core::array::from_fn(|i| i * 100 + 1);
+    let lens_1000: [usize; 101] =
+        core::array::from_fn(|i| if i == 101 { 1000 } else { i * 10 + 1 });
+    let lens_10_000: [usize; 101] =
+        core::array::from_fn(|i| if i == 101 { 10_000 } else { i * 100 + 1 });
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_left::<1>(c, &lens_100);
