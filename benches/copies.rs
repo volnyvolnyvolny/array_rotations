@@ -26,7 +26,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO↓FTWARE.
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, BenchmarkId, Criterion,
 };
-use rust_rotations::{ptr_reversal_rotate, utils::*};
+use rust_rotations::utils::*;
 
 use std::collections::HashMap;
 use std::ptr;
@@ -45,7 +45,6 @@ enum Fun {
     Copy,
     ByteCopy,
     BlockCopy,
-    ReversalRotate,
 }
 
 use Fun::*;
@@ -100,25 +99,9 @@ fn run_fun<const N: usize>(
                 },
             );
         }
-        ReversalRotate => {
-            if distance < 0 {
-                group.bench_with_input(
-                    BenchmarkId::new("ptr_reversal_rotate", len),
-                    &param,
-                    |b, _l| {
-                        b.iter(|| unsafe { ptr_reversal_rotate::<[usize; N]>(1, arr.add(1), len) })
-                    },
-                );
-            } else {
-                group.bench_with_input(
-                    BenchmarkId::new("ptr_reversal_rotate", len),
-                    &param,
-                    |b, _l| b.iter(|| unsafe { ptr_reversal_rotate::<[usize; N]>(len, arr, 1) }),
-                );
-            }
-        }
     }
 }
+
 /// ```text
 ///   start, dist = 2
 ///   |               len = 4
@@ -401,9 +384,9 @@ fn bench_copy(c: &mut Criterion) {
 fn bench_shift_left(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
     let lens_1000: [usize; 101] =
-        core::array::from_fn(|i| if i == 101 { 1000 } else { i * 10 + 1 });
+        core::array::from_fn(|i| if i == 100 { 1000 } else { i * 10 + 1 });
     let lens_10_000: [usize; 101] =
-        core::array::from_fn(|i| if i == 101 { 10_000 } else { i * 100 + 1 });
+        core::array::from_fn(|i| if i == 100 { 10_000 } else { i * 100 + 1 });
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_left::<1>(c, &lens_100);
@@ -451,9 +434,9 @@ fn bench_shift_left(c: &mut Criterion) {
 fn bench_shift_right(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
     let lens_1000: [usize; 101] =
-        core::array::from_fn(|i| if i == 101 { 1000 } else { i * 10 + 1 });
+        core::array::from_fn(|i| if i == 100 { 1000 } else { i * 10 + 1 });
     let lens_10_000: [usize; 101] =
-        core::array::from_fn(|i| if i == 101 { 10_000 } else { i * 100 + 1 });
+        core::array::from_fn(|i| if i == 100 { 10_000 } else { i * 100 + 1 });
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_right::<1>(c, &lens_100);
