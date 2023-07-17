@@ -25,6 +25,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use std::mem::size_of;
 use std::mem::MaybeUninit;
+use std::ops::RangeToInclusive;
 use std::ptr;
 use std::ptr::copy_nonoverlapping;
 use std::slice;
@@ -233,9 +234,9 @@ pub unsafe fn block_copy<T>(src: *const T, dst: *mut T, count: usize) {
 /// [ 1  2 :4 *5 ~~~~~~~~~~~ 10 10 11  .  .  . 15]
 /// ```
 pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
-    if size_of::<T>() < 2 * size_of::<usize>() {
+    if size_of::<T>() == size_of::<usize>() && count >= 15 {
         byte_copy(arr, arr.sub(1), count);
-    } else if size_of::<T>() <= 10 * size_of::<usize>() {
+    } else if size_of::<T>() < 15 * size_of::<usize>() {
         copy(arr, arr.sub(1), count);
     } else {
         ptr::copy(arr, arr.sub(1), count);
