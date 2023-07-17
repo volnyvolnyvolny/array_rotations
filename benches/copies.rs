@@ -398,6 +398,11 @@ fn bench_shift_left(c: &mut Criterion) {
     case_shift_left::<2>(c, &lens_10_000);
     case_shift_left::<2>(c, &lens_100_000);
 
+    case_shift_left::<5>(c, &lens_100);
+    case_shift_left::<5>(c, &lens_1000);
+    case_shift_left::<5>(c, &lens_10_000);
+    case_shift_left::<5>(c, &lens_100_000);
+
     case_shift_left::<10>(c, &lens_100);
     case_shift_left::<10>(c, &lens_1000);
     case_shift_left::<10>(c, &lens_10_000);
@@ -437,10 +442,9 @@ fn bench_shift_left(c: &mut Criterion) {
 /// cargo bench --bench=copies "Shift right"
 fn bench_shift_right(c: &mut Criterion) {
     let lens_100: [usize; 100] = core::array::from_fn(|i| i + 1);
-    let lens_1000: [usize; 101] =
-        core::array::from_fn(|i| if i == 100 { 1000 } else { i * 10 + 1 });
-    let lens_10_000: [usize; 101] =
-        core::array::from_fn(|i| if i == 100 { 10_000 } else { i * 100 + 1 });
+    let lens_1000: [usize; 51] = core::array::from_fn(|i| if i == 50 { 1000 } else { i * 20 + 1 });
+    let lens_10_000: [usize; 51] =
+        core::array::from_fn(|i| if i == 50 { 10_000 } else { i * 200 + 1 });
     let lens_100_000 = [1000, 25_000, 50_000, 75_000, 100_000];
 
     case_shift_right::<1>(c, &lens_100);
@@ -452,6 +456,11 @@ fn bench_shift_right(c: &mut Criterion) {
     case_shift_right::<2>(c, &lens_1000);
     case_shift_right::<2>(c, &lens_10_000);
     case_shift_right::<2>(c, &lens_100_000);
+
+    case_shift_right::<5>(c, &lens_100);
+    case_shift_right::<5>(c, &lens_1000);
+    case_shift_right::<5>(c, &lens_10_000);
+    case_shift_right::<5>(c, &lens_100_000);
 
     case_shift_right::<10>(c, &lens_100);
     case_shift_right::<10>(c, &lens_1000);
@@ -477,6 +486,16 @@ fn bench_shift_right(c: &mut Criterion) {
     case_shift_right::<80>(c, &lens_1000);
     case_shift_right::<80>(c, &lens_10_000);
     case_shift_right::<80>(c, &lens_100_000);
+
+    case_shift_right::<160>(c, &lens_100);
+    case_shift_right::<160>(c, &lens_1000);
+    case_shift_right::<160>(c, &lens_10_000);
+    case_shift_right::<160>(c, &lens_100_000);
+
+    case_shift_right::<320>(c, &lens_100);
+    case_shift_right::<320>(c, &lens_1000);
+    case_shift_right::<320>(c, &lens_10_000);
+    case_shift_right::<320>(c, &lens_100_000);
 }
 
 criterion_group! {
