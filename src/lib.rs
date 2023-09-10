@@ -61,6 +61,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     }
 
     let start = mid.sub(left);
+    let end = mid.add(right - 1);
 
     if left == 1 && right == 1 {
         ptr::swap(start, mid);
@@ -70,14 +71,14 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
         let tmp = start.read();
 
         shift_left(1, mid, right);
-        mid.add(right - 1).write(tmp);
+        end.write(tmp);
     } else if left == 2 {
         let (a, b) = (start.read(), start.add(1).read());
 
         shift_left(left, mid, right);
 
-        mid.add(right - 1).write(a);
-        mid.add(right).write(b);
+        end.sub(1).write(a);
+        end.write(b);
     } else if right == 1 {
         let tmp = mid.read();
 
@@ -86,8 +87,10 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     } else if right == 2 {
         let (a, b) = (mid.read(), mid.add(1).read());
 
+        shift_right(left, mid, right);
+
         start.write(a);
-        start.write(b);
+        start.add(1).write(b);
     } else {
         // fallback
         stable_ptr_rotate(left, mid, right);
@@ -1433,6 +1436,9 @@ mod tests {
 
         // 1 (2  3  4  5  6  7  8  9 10 11 12 13 14)15
         case(rotate_f, 15, 13);
+
+        // 1  2 (3  4  5  6  7  8  9 10 11 12 13)14 15
+        case(rotate_f, 15, 11);
 
         //(1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
         case(rotate_f, 15, 15);
