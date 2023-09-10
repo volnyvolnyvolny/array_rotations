@@ -87,7 +87,7 @@ use std::ptr;
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -168,7 +168,7 @@ pub unsafe fn ptr_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: 
 /// [ 1  .  .  4* 5  .  .  .  .  . 11:12 ~~~~~ 15]
 /// ```
 pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -280,7 +280,7 @@ pub unsafe fn ptr_naive_aux_rotate<T>(left: usize, mid: *mut T, right: usize, bu
 /// [ 1 ~~~ 3  4  .  6* 7  .  9:10  .  .  .  . 15]
 /// ```
 unsafe fn ptr_bridge_rotate_simple<T>(left: usize, mid: *mut T, right: usize, buffer: &mut [T]) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }

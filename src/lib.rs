@@ -49,7 +49,7 @@ pub use gm::*;
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
-/// This is the fastest way to calculate `left <= 2` and `right <= 2` cases.
+/// This is the fastest way to calculate `left <= 2` and `right <= 2` edge cases.
 ///
 /// ## Safety
 ///
@@ -64,31 +64,32 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
     if left == 1 && right == 1 {
         ptr::swap(start, mid);
+    } else if left == 2 && right == 2 {
+        ptr::swap_nonoverlapping(start, mid, 2);
     } else if left == 1 {
         let tmp = start.read();
 
         shift_left(1, mid, right);
         mid.add(right - 1).write(tmp);
+    } else if left == 2 {
+        let (a, b) = (start.read(), start.add(1).read());
+
+        shift_left(left, mid, right);
+
+        mid.add(right - 1).write(a);
+        mid.add(right).write(b);
     } else if right == 1 {
         let tmp = mid.read();
 
         shift_right(left, mid, right);
         start.write(tmp);
-    } else if left == 2 && right == 2 {
-        ptr::swap_nonoverlapping(start, mid, 2);
-    } else if left == 2 {
-        let (tmp1, tmp2) = (start.read(), start.add(1).read());
-
-        shift_left(left, mid, right);
-
-        mid.add(right - 1).write(tmp1);
-        mid.add(right).write(tmp2);
     } else if right == 2 {
-        let (tmp1, tmp2) = (mid.read(), mid.add(1).read());
+        let (a, b) = (mid.read(), mid.add(1).read());
 
-        start.write(tmp1);
-        start.write(tmp2);
+        start.write(a);
+        start.write(b);
     } else {
+        // fallback
         stable_ptr_rotate(left, mid, right);
     }
 }
@@ -190,7 +191,7 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if left <= 1 || right <= 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -323,7 +324,7 @@ pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize
 /// [10 11 12 13 14 15 :1  2  3* 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -384,7 +385,7 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9]
 /// ```
 pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -468,7 +469,7 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
 /// [10  .  .  .  . 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if left <= 1 || right <= 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -535,7 +536,7 @@ pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
 /// ```
 pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usize) {
     loop {
-        if left <= 1 {
+        if left <= 2 {
             break;
         }
 
@@ -544,7 +545,7 @@ pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usiz
             right -= left;
         }
 
-        if right <= 1 {
+        if right <= 2 {
             break;
         }
 
@@ -554,7 +555,7 @@ pub unsafe fn ptr_piston_rotate<T>(mut left: usize, mid: *mut T, mut right: usiz
         }
     }
 
-    if left == 1 || right == 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
     }
 }
@@ -610,7 +611,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
     loop {
         if left >= right {
-            if right <= 1 {
+            if right <= 2 {
                 break;
             }
 
@@ -626,7 +627,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
             mid = start.add(left);
             right -= left;
         } else {
-            if left <= 1 {
+            if left <= 2 {
                 break;
             }
 
@@ -639,7 +640,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
     }
 
-    if left == 1 || right == 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
     }
 }
@@ -719,7 +720,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 /// ```
 pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
     // N.B. the below algorithms can fail if these cases are not checked
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -891,7 +892,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if left <= 1 || right <= 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
