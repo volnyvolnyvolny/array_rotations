@@ -43,18 +43,17 @@ pub use utils::*;
 pub mod gm;
 pub use gm::*;
 
-/// # Edge case (left && right <= 1)
+/// # Edge case (optimal for left && right <= 2)
 ///
 /// Rotates the range `[mid-1, mid+right)` or `[mid-left, mid+1)` such that the element
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
-/// This is the fastest way to calculate `left = 1` and `right = 1` cases.
+/// This is the fastest way to calculate `left <= 2` and `right <= 2` cases.
 ///
 /// ## Safety
 ///
-/// 1. The specified range must be valid for reading and writing;
-/// 2. `left <= 1` and `right <= 1`.
+/// The specified range must be valid for reading and writing.
 #[inline(always)]
 pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
     if left == 0 || right == 0 {
@@ -63,22 +62,34 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
     let start = mid.sub(left);
 
-    if left == 1 {
-        if right == 1 {
-            ptr::swap(start, mid);
-        } else {
-            let tmp = start.read();
+    if left == 1 && right == 1 {
+        ptr::swap(start, mid);
+    } else if left == 1 {
+        let tmp = start.read();
 
-            shift_left(mid, right);
-            mid.add(right - 1).write(tmp);
-        }
+        shift_left(1, mid, right);
+        mid.add(right - 1).write(tmp);
     } else if right == 1 {
         let tmp = mid.read();
 
-        shift_right(start, left);
+        shift_right(left, mid, right);
         start.write(tmp);
+    } else if left == 2 && right == 2 {
+        ptr::swap_nonoverlapping(start, mid, 2);
+    } else if left == 2 {
+        let (tmp1, tmp2) = (start.read(), start.add(1).read());
+
+        shift_left(left, mid, right);
+
+        mid.add(right - 1).write(tmp1);
+        mid.add(right).write(tmp2);
+    } else if right == 2 {
+        let (tmp1, tmp2) = (mid.read(), mid.add(1).read());
+
+        start.write(tmp1);
+        start.write(tmp2);
     } else {
-        panic!("left > 1 or right > 1");
+        stable_ptr_rotate(left, mid, right);
     }
 }
 

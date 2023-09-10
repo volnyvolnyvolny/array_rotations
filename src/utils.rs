@@ -25,7 +25,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use std::mem::size_of;
 use std::mem::MaybeUninit;
-use std::ops::RangeToInclusive;
 use std::ptr;
 use std::ptr::copy_nonoverlapping;
 use std::slice;
@@ -106,7 +105,7 @@ pub unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
 
 /// # Copy (may overlap)
 ///
-/// Copy region `[src, src + count)` to `[dst, dst + count)` by byte.
+/// Copy region `[src, src + count)` to `[dst, dst + count)` byte by byte.
 ///
 /// Regions could overlap.
 ///
@@ -216,52 +215,64 @@ pub unsafe fn block_copy<T>(src: *const T, dst: *mut T, count: usize) {
     }
 }
 
-/// # Shift left (backward)
+/// # Shift left
 ///
-/// Shift region `[src, src + count)` to `[src - 1, src - 1 + count)`, moving left-to-right.
+/// Shift region `[mid, mid + count)` to `[mid - left, mid - left + count)`
+/// using element-by-element copy (left-to-right), byte_copy or std::ptr::copy.
 ///
 /// ## Safety
 ///
-/// * The region `[src - 1, src - 1 + count)` must be valid for writing;
-/// * the region `[src    , src     + count)` must be valid for reading.
+/// * The region `[mid       , mid        + count)` must be valid for reading;
+/// * the region `[mid - left, mid - left + count)` must be valid for writing.
 ///
 /// ## Example
 ///
 /// ```text
-///          <<src  count = 7
+///          <<mid, left = 1, count = 7
 /// [ 1  2 :3 *4  5  6  7  8  9 10 11 12 13 14 15]
 ///            └─────────────────┘
 /// [ 1  2 :4 *5 ~~~~~~~~~~~ 10 10 11  .  .  . 15]
 /// ```
-pub unsafe fn shift_left<T>(arr: *mut T, count: usize) {
+pub unsafe fn shift_left<T>(left: usize, mid: *mut T, count: usize) {
+    let start = mid.sub(left);
+
     if size_of::<T>() == size_of::<usize>() && count >= 15 {
-        byte_copy(arr, arr.sub(1), count);
+        byte_copy(mid, start, count);
     } else if size_of::<T>() < 15 * size_of::<usize>() {
-        copy(arr, arr.sub(1), count);
+        copy(mid, start, count);
     } else {
-        ptr::copy(arr, arr.sub(1), count);
+        ptr::copy(mid, start, count);
     }
 }
 
-/// # Shift right (forward)
+/// # Shift right
 ///
-/// Shift region `[src, src + count)` to `[src + 1, src + 1 + count)`, moving right-to-left.
+/// Shift region `[mid - count, mid)` to `[mid - count + right, mid + right)`
+/// using element-by-element copy (right-to-left), byte_copy or std::ptr::copy.
 ///
 /// ## Safety
 ///
-/// * The region `[src + 1, src + 1 + count)` must be valid for writing;
-/// * the region `[src    , src     + count)` must be valid for reading.
+/// * The region `[mid - count        , mid)` must be valid for reading;
+/// * the region `[mid - count + right, mid + right)` must be valid for writing.
 ///
 /// ## Example
 ///
 /// ```text
-///            src>> count = 7
+///            count = 7, mid, right = 1>>
 /// [ 1  2  3 *4 :5  6  7  8  9 10 11 12 13 14 15]
 ///            └─────────────────┘
 /// [ 1  2  3 *4 :4 ~~~~~~~~~~~~~~ 10 12  .  . 15]
 /// ```
-pub unsafe fn shift_right<T>(arr: *mut T, count: usize) {
-    copy(arr, arr.add(1), count);
+pub unsafe fn shift_right<T>(count: usize, mid: *mut T, right: usize) {
+    let start = mid.sub(count);
+
+    if size_of::<T>() == size_of::<usize>() && count >= 200 {
+        byte_copy(start, start.add(right), count);
+    } else if size_of::<T>() < 10 * size_of::<usize>() {
+        copy(start, start.add(right), count);
+    } else {
+        byte_copy(start, start.add(right), count);
+    }
 }
 
 /// # Swap forward
@@ -475,28 +486,28 @@ mod tests {
     #[test]
     fn shift_left_correct() {
         let mut v = seq(15);
-        let mut src = *unsafe { &v[..].as_mut_ptr().add(3) };
+        let mut mid = *unsafe { &v[..].as_mut_ptr().add(3) };
 
-        unsafe { shift_left(src, 7) };
+        unsafe { shift_left(1, mid, 7) };
 
         assert_eq!(v, vec![1, 2, 4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15]);
 
-        src = *unsafe { &v[..].as_mut_ptr().add(2) };
+        mid = *unsafe { &v[..].as_mut_ptr().add(2) };
 
-        unsafe { shift_left(src, 7) };
+        unsafe { shift_left(1, mid, 7) };
 
         assert_eq!(v, vec![1, 4, 5, 6, 7, 8, 9, 10, 10, 10, 11, 12, 13, 14, 15]);
 
         v = seq(15);
-        let mut src = *unsafe { &v[..].as_mut_ptr().add(3) };
+        let mut mid = *unsafe { &v[..].as_mut_ptr().add(3) };
 
-        unsafe { shift_left(src, 7) };
+        unsafe { shift_left(1, mid, 7) };
 
         assert_eq!(v, vec![1, 2, 4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15]);
 
-        src = *unsafe { &v[..].as_mut_ptr().add(2) };
+        mid = *unsafe { &v[..].as_mut_ptr().add(2) };
 
-        unsafe { shift_left(src, 7) };
+        unsafe { shift_left(1, mid, 7) };
 
         assert_eq!(v, vec![1, 4, 5, 6, 7, 8, 9, 10, 10, 10, 11, 12, 13, 14, 15]);
     }
@@ -506,13 +517,13 @@ mod tests {
         let mut v = seq(15);
         let mut src = *unsafe { &v[..].as_mut_ptr().add(3) };
 
-        unsafe { shift_right(src, 7) };
+        unsafe { shift_right(7, src.add(7), 1) };
 
         assert_eq!(v, vec![1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15]);
 
         src = *unsafe { &v[..].as_mut_ptr().add(4) };
 
-        unsafe { shift_right(src, 7) };
+        unsafe { shift_right(7, src.add(7), 1) };
 
         assert_eq!(v, vec![1, 2, 3, 4, 4, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15]);
     }
@@ -522,14 +533,14 @@ mod tests {
         let mut v = seq_multi::<20>(15);
         let mut src = *unsafe { &v[..].as_mut_ptr().add(1) };
 
-        unsafe { shift_left(src, 14) };
+        unsafe { shift_left(1, src, 14) };
 
         assert_eq!(v[0..13], seq_multi::<20>(14)[1..14]);
 
         v = seq_multi::<20>(15);
         src = *&v[..].as_mut_ptr();
 
-        unsafe { shift_right(src, 14) };
+        unsafe { shift_right(14, src.add(14), 1) };
         assert_eq!(v[1..14], seq_multi::<20>(14)[0..13]);
     }
 

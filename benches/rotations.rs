@@ -87,14 +87,7 @@ fn case<const N: usize>(
                 }
                 ContrevB => {
                     group.bench_with_input(BenchmarkId::new("ContrevB", l), l, |b, _| {
-                        b.iter(|| {
-                            test(
-                                ptr_block_contrev_rotate::<[usize; N]>,
-                                l.clone(),
-                                mid,
-                                r,
-                            )
-                        })
+                        b.iter(|| test(ptr_block_contrev_rotate::<[usize; N]>, l.clone(), mid, r))
                     });
                 }
                 GM => {
@@ -104,14 +97,7 @@ fn case<const N: usize>(
                 }
                 GMRec => {
                     group.bench_with_input(BenchmarkId::new("GM (rec)", l), l, |b, _| {
-                        b.iter(|| {
-                            test(
-                                ptr_griesmills_rotate_rec::<[usize; N]>,
-                                l.clone(),
-                                mid,
-                                r,
-                            )
-                        })
+                        b.iter(|| test(ptr_griesmills_rotate_rec::<[usize; N]>, l.clone(), mid, r))
                     });
                 }
                 Helix => {
@@ -169,14 +155,7 @@ fn case<const N: usize>(
                 }
                 RevB => {
                     group.bench_with_input(BenchmarkId::new("RevB", l), l, |b, _| {
-                        b.iter(|| {
-                            test(
-                                ptr_block_reversal_rotate::<[usize; N]>,
-                                l.clone(),
-                                mid,
-                                r,
-                            )
-                        })
+                        b.iter(|| test(ptr_block_reversal_rotate::<[usize; N]>, l.clone(), mid, r))
                     });
                 }
                 Piston => {
