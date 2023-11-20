@@ -65,8 +65,8 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 
     if left == 1 && right == 1 {
         ptr::swap(start, mid);
-    } else if left == 2 && right == 2 {
-        ptr::swap_nonoverlapping(start, mid, 2);
+    } else if left == right {
+        ptr::swap_nonoverlapping(start, mid, right);
     } else if left == 1 {
         let tmp = start.read();
 
@@ -194,82 +194,78 @@ pub unsafe fn ptr_edge_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~~~~~~~ e  f  g: 1* 2  3  4 ~~~~~~~~~ 8]
 /// ```
 pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if left <= 2 || right <= 2 {
+    if left <= 2 || right <= 2 || left == right {
         ptr_edge_rotate(left, mid, right);
         return;
     }
 
-    if left == right {
-        ptr::swap_nonoverlapping(mid, mid.sub(left), right);
+    let block_size = gcd::binary_usize(left, right);
+
+    if block_size == 1 {
+        ptr_contrev_rotate(left, mid, right);
     } else {
-        let block_size = gcd::binary_usize(left, right);
+        let (mut ls, mut le) = (mid.sub(left), mid.sub(block_size));
+        let (mut rs, mut re) = (mid, mid.add(right).sub(block_size));
 
-        if block_size == 1 {
-            ptr_contrev_rotate(left, mid, right);
-        } else {
-            let (mut ls, mut le) = (mid.sub(left), mid.sub(block_size));
-            let (mut rs, mut re) = (mid, mid.add(right).sub(block_size));
+        let half_min = cmp::min(left, right) / block_size / 2;
+        let half_max = cmp::max(left, right) / block_size / 2;
 
-            let half_min = cmp::min(left, right) / block_size / 2;
-            let half_max = cmp::max(left, right) / block_size / 2;
+        for _ in 0..half_min {
+            // Permutation (ls, le, re, rs)
+            for _ in 0..block_size {
+                ls.write(rs.replace(re.replace(le.replace(ls.read()))));
 
-            for _ in 0..half_min {
-                // Permutation (ls, le, re, rs)
+                ls = ls.add(1);
+                le = le.add(1);
+                rs = rs.add(1);
+                re = re.add(1);
+            }
+
+            le = le.sub(2 * block_size);
+            re = re.sub(2 * block_size);
+        }
+
+        if left > right {
+            for _ in 0..half_max - half_min {
+                // (ls, le, re)
                 for _ in 0..block_size {
-                    ls.write(rs.replace(re.replace(le.replace(ls.read()))));
+                    ls.write(re.replace(le.replace(ls.read())));
 
                     ls = ls.add(1);
                     le = le.add(1);
-                    rs = rs.add(1);
                     re = re.add(1);
                 }
 
                 le = le.sub(2 * block_size);
                 re = re.sub(2 * block_size);
             }
-
-            if left > right {
-                for _ in 0..half_max - half_min {
-                    // (ls, le, re)
-                    for _ in 0..block_size {
-                        ls.write(re.replace(le.replace(ls.read())));
-
-                        ls = ls.add(1);
-                        le = le.add(1);
-                        re = re.add(1);
-                    }
-
-                    le = le.sub(2 * block_size);
-                    re = re.sub(2 * block_size);
-                }
-            } else {
-                for _ in 0..half_max - half_min {
-                    // (rs, re, ls)
-                    for _ in 0..block_size {
-                        ls.write(rs.replace(re.replace(ls.read())));
-
-                        ls = ls.add(1);
-                        rs = rs.add(1);
-                        re = re.add(1);
-                    }
-
-                    re = re.sub(2 * block_size);
-                }
-            }
-
-            let center = (re.offset_from(ls).abs() / 2) as usize / block_size;
-
-            for _ in 0..center {
+        } else {
+            for _ in 0..half_max - half_min {
+                // (rs, re, ls)
                 for _ in 0..block_size {
-                    // (re, ls)
-                    ls.write(re.replace(ls.read()));
+                    ls.write(rs.replace(re.replace(ls.read())));
 
                     ls = ls.add(1);
+                    rs = rs.add(1);
                     re = re.add(1);
                 }
 
                 re = re.sub(2 * block_size);
             }
+        }
+
+        let center = (re.offset_from(ls).abs() / 2) as usize / block_size;
+
+        for _ in 0..center {
+            for _ in 0..block_size {
+                // (re, ls)
+                ls.write(re.replace(ls.read()));
+
+                ls = ls.add(1);
+                re = re.add(1);
+            }
+
+            re = re.sub(2 * block_size);
         }
     }
 }
@@ -327,30 +323,26 @@ pub unsafe fn ptr_block_contrev_rotate<T>(left: usize, mid: *mut T, right: usize
 /// [10 11 12 13 14 15 :1  2  3* 4  5  6  7  8  9]
 /// ```
 pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if right <= 2 || left <= 2 {
+    if right <= 2 || left <= 2 || left == right {
         ptr_edge_rotate(left, mid, right);
         return;
     }
 
     let start = mid.sub(left);
 
-    if left == right {
-        ptr::swap_nonoverlapping(mid, start, left);
-    } else {
-        #[inline(always)]
-        unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
-            if size <= 3 {
-                ptr::swap(p, p.add(size).sub(1));
-            } else {
-                let slice = slice::from_raw_parts_mut(p, size);
-                slice.reverse();
-            }
+    #[inline(always)]
+    unsafe fn reverse_slice<T>(p: *mut T, size: usize) {
+        if size <= 3 {
+            ptr::swap(p, p.add(size).sub(1));
+        } else {
+            let slice = slice::from_raw_parts_mut(p, size);
+            slice.reverse();
         }
-
-        reverse_slice(start, left);
-        reverse_slice(mid, right);
-        reverse_slice(start, left + right);
     }
+
+    reverse_slice(start, left);
+    reverse_slice(mid, right);
+    reverse_slice(start, left + right);
 }
 
 /// # Triple block reversal rotation
@@ -388,37 +380,33 @@ pub unsafe fn ptr_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  d ~~~ f  1 ~~~ 3  4 ~~~ 6  7 ~~~ 9]
 /// ```
 pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usize) {
-    if right <= 2 || left <= 2 {
+    if right <= 2 || left <= 2 || left == right {
         ptr_edge_rotate(left, mid, right);
         return;
     }
 
     let start = mid.sub(left);
 
-    if left == right {
-        ptr::swap_nonoverlapping(mid, start, left);
+    let block_size = gcd::binary_usize(left, right);
+
+    if block_size == 1 {
+        ptr_reversal_rotate(left, mid, right);
     } else {
-        let block_size = gcd::binary_usize(left, right);
+        #[inline(always)]
+        unsafe fn reverse<T>(p: *mut T, count: usize, block_size: usize) {
+            let mut start = p;
+            let mut end = p.add((count - 1) * block_size);
 
-        if block_size == 1 {
-            ptr_reversal_rotate(left, mid, right);
-        } else {
-            #[inline(always)]
-            unsafe fn reverse<T>(p: *mut T, count: usize, block_size: usize) {
-                let mut start = p;
-                let mut end = p.add((count - 1) * block_size);
-
-                for _ in 0..count / 2 {
-                    ptr::swap_nonoverlapping(start, end, block_size);
-                    start = start.add(block_size);
-                    end = end.sub(block_size);
-                }
+            for _ in 0..count / 2 {
+                ptr::swap_nonoverlapping(start, end, block_size);
+                start = start.add(block_size);
+                end = end.sub(block_size);
             }
-
-            reverse(start, left / block_size, block_size);
-            reverse(mid, right / block_size, block_size);
-            reverse(start, (left + right) / block_size, block_size);
         }
+
+        reverse(start, left / block_size, block_size);
+        reverse(mid, right / block_size, block_size);
+        reverse(start, (left + right) / block_size, block_size);
     }
 }
 
@@ -472,7 +460,7 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
 /// [10  .  .  .  . 15: 1 ~~~ 3* 4 ~~~~~~~~~~~~ 9]
 /// ```
 pub unsafe fn ptr_piston_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if left <= 2 || right <= 2 {
+    if left <= 2 || right <= 2 || left == right {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -614,13 +602,8 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 
     loop {
         if left >= right {
-            if right <= 2 {
+            if right <= 2 || left == right {
                 break;
-            }
-
-            if left == right {
-                ptr::swap_nonoverlapping(start, mid, right);
-                return;
             }
 
             swap_backward(start, end.sub(left), left);
@@ -630,7 +613,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
             mid = start.add(left);
             right -= left;
         } else {
-            if left <= 2 {
+            if left <= 2 || left == right {
                 break;
             }
 
@@ -643,7 +626,7 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
         }
     }
 
-    if left <= 2 || right <= 2 {
+    if left <= 2 || right <= 2 || left == right {
         ptr_edge_rotate(left, mid, right);
     }
 }
@@ -831,7 +814,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  4  .  6  3  2  1  f  e  d╰>7 ~~~ 9]  // (ls, le, re    )
 ///            ╰──╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭┈┈╯
 ///            ╭┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯┆
-///            ↓  sl-|>         <--re┆
+///            ↓  sl-->         <--re┆
 /// [ a ~~~~~~ d  5  4  3  2  1  f  e╰>6 ~~~~~~ 9]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
@@ -859,7 +842,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1 ~~~ 3╯╰c  b  a  9  8  7  4  5  6  d ~~~ f]  // (ls,     re, rs)
 ///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
 ///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ sl-->         <|-re  ↓
+///             ┆ sl-->         <--re  ↓
 /// [ 1 ~~~~~~ 4╯ b  a  9  8  7  6  5  c ~~~~~~ f]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
