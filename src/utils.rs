@@ -279,7 +279,8 @@ pub unsafe fn shift_right<T>(count: usize, mid: *mut T, right: usize) {
 ///
 /// Swaps regions `[x, x+count)` and `[y, y+count)` moving right,
 /// element by element.
-/// Regions could overlap.
+///
+/// Regions could overlap!
 ///
 /// ## Safety
 ///
@@ -334,7 +335,8 @@ pub unsafe fn swap_forward<T>(x: *mut T, y: *mut T, count: usize) {
 ///
 /// Swaps regions `[x, x+count)` and `[y, y+count)` moving left,
 /// element by element.
-/// Regions could overlap.
+///
+/// Regions could overlap!
 ///
 /// ## Safety
 ///

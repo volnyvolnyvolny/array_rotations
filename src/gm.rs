@@ -27,7 +27,7 @@ use crate::ptr_edge_rotate;
 use std::mem::MaybeUninit;
 use std::ptr;
 
-/// # Gries-Mills rotation (recursive variant)
+/// # Gries-Mills rotation (recursive)
 ///
 /// Rotates the range `[mid-left, mid+right)` such that the element at `mid` becomes
 /// the first element. Equivalently, rotates the range `left` elements to the left
@@ -35,7 +35,7 @@ use std::ptr;
 ///
 /// ## Algorithm
 ///
-/// 1. Swap the shadow to its place;
+/// 1. Swap the 𝑠ℎ𝑎𝑑𝑜𝑤 to its place;
 /// 2. rotate smaller array.
 ///
 /// "You swap the smallest array linearly towards its proper location,
@@ -78,7 +78,7 @@ use std::ptr;
 /// [10 ~~~~~~~~~~~ 15: 1 ~~~ 3* 4  .  .  .  .  9]
 /// ```
 pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usize) {
-    if right <= 1 || left <= 1 {
+    if right <= 2 || left <= 2 {
         ptr_edge_rotate(left, mid, right);
         return;
     }
@@ -101,7 +101,7 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 ///
 /// ## Algorithm
 ///
-/// 1. Swap the shadow to its place;
+/// 1. Swap the 𝑠ℎ𝑎𝑑𝑜𝑤 to its place;
 /// 2. rotate smaller array.
 ///
 /// "You swap the smallest array linearly towards its proper location,
@@ -145,8 +145,9 @@ pub unsafe fn ptr_griesmills_rotate_rec<T>(left: usize, mid: *mut T, right: usiz
 pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut right: usize) {
     loop {
         if left <= right {
-            if left <= 1 {
-                break;
+            if left <= 2 {
+                ptr_edge_rotate(left, mid, right);
+                return;
             }
 
             let start = mid.sub(left);
@@ -154,18 +155,15 @@ pub unsafe fn ptr_griesmills_rotate<T>(mut left: usize, mut mid: *mut T, mut rig
             mid = mid.add(left);
             right -= left;
         } else {
-            if right <= 1 {
-                break;
+            if right <= 2 {
+                ptr_edge_rotate(left, mid, right);
+                return;
             }
 
             ptr::swap_nonoverlapping(mid, mid.sub(right), right);
             mid = mid.sub(right);
             left -= right;
         }
-    }
-
-    if left == 1 || right == 1 {
-        ptr_edge_rotate(left, mid, right);
     }
 }
 
@@ -212,7 +210,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
     let mut end = mid.add(right);
     let mut s;
 
-    while left > 1 {
+    while left > 2 {
         if left <= right {
             // -->
             let old_r = right;
@@ -235,7 +233,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
         }
 
         // <--
-        if right <= 1 {
+        if right <= 2 {
             break;
         }
 
@@ -262,7 +260,7 @@ pub unsafe fn ptr_drill_rotate<T>(mut left: usize, mid: *mut T, mut right: usize
         end = end.sub(s);
     }
 
-    if left == 1 || right == 1 {
+    if left <= 2 || right <= 2 {
         ptr_edge_rotate(left, mid, right);
     }
 }

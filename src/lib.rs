@@ -45,7 +45,7 @@ pub use gm::*;
 
 /// # Edge case (optimal for left && right <= 2)
 ///
-/// Rotates the range `[mid-1, mid+right)` or `[mid-left, mid+1)` such that the element
+/// Rotates the range `[mid-left, mid+right)` such that the element
 /// at `mid` becomes the first element. Equivalently, rotates the range `left` elements
 /// to the left or `right` elements to the right.
 ///
@@ -429,7 +429,7 @@ pub unsafe fn ptr_block_reversal_rotate<T>(left: usize, mid: *mut T, right: usiz
 ///
 /// ## Properties
 ///
-/// * During computation `mid` is never shifted.
+/// * During the computation `mid` is never shifted.
 ///
 /// ## Safety
 ///
@@ -639,8 +639,6 @@ pub unsafe fn ptr_helix_rotate<T>(mut left: usize, mut mid: *mut T, mut right: u
 ///
 /// ## Algorithm
 ///
-/// This algorithm is extracted from current rotation implementation in Rust.
-///
 /// "In Rust this algorithm is used for small values of `left + right` or for large `T`. The elements
 /// are moved into their final positions one at a time starting at `mid - left` and advancing by `right`
 /// steps modulo `left + right`, such that only one temporary is needed. Eventually, we arrive back at
@@ -802,7 +800,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1  2  3  4  5  6: 7  8  9* a  b  c  d  e  f]  // (ls -> le -> re -> rs -> ls)
 ///   ╰───────────╮           ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈╮ |
 ///   ╭┈┈┈┈┈┈┈┈┈┈ ╰───────────╮┈┈╯╭────────── ┆─╯
-///   ↓  sl               le  |   | sr      re┆
+///   ↓  ls               le  |   | rs      re┆
 /// [ a  2  .  .  .  .  .  8  1  f╯ b  .  .  e╰>9]  // (ls, le, re, rs)
 ///      ╰────────╮        ╰┈┈┈┈┈╭┈┈╯ ┈┈┈┈┈╮ |
 ///      ╭┈┈┈┈┈┈┈ ╰────────╮┈┈┈┈┈╯  ╭───── ┆─╯
@@ -814,7 +812,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  4  .  6  3  2  1  f  e  d╰>7 ~~~ 9]  // (ls, le, re    )
 ///            ╰──╮  ╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭┈┈╯
 ///            ╭┈ ╰──╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯┆
-///            ↓  sl-->         <--re┆
+///            ↓  ls-->         <--re┆
 /// [ a ~~~~~~ d  5  4  3  2  1  f  e╰>6 ~~~~~~ 9]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
@@ -830,7 +828,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a  b  c  d  e  f* 1  2  3: 4  5  6  7  8  9]  // (ls -> le -> re -> rs -> ls)
 ///   | ╭┈┈┈┈┈┈┈┈┈┈┈ ┆┈┈╯           ╭───────────╯
 ///   ╰─┆ ──────────╮╰┈┈╭───────────╯ ┈┈┈┈┈┈┈┈┈┈╮
-///     ┆sl      le |   |  sr               re  ↓
+///     ┆ls      le |   |  rs               re  ↓
 /// [ 1<╯b  .  .  e ╰a  9  2  .  .  .  .  .  8  f]  // (ls, le, re, rs)
 ///      | ╭┈┈┈┈┈ ┆┈┈┈┈┈┈┈┈╯        ╭────────╯
 ///      ╰─┆ ───╮ ╰┈┈┈┈┈┈┈┈╭────────╯ ┈┈┈┈┈┈┈╮
@@ -842,7 +840,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1 ~~~ 3╯╰c  b  a  9  8  7  4  5  6  d ~~~ f]  // (ls,     re, rs)
 ///            ╰┈╮┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╯  ╭──╯
 ///             ┆╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──╯ ─╮
-///             ┆ sl-->         <--re  ↓
+///             ┆ ls-->         <--re  ↓
 /// [ 1 ~~~~~~ 4╯ b  a  9  8  7  6  5  c ~~~~~~ f]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮
@@ -858,7 +856,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ 1  2  3  4  5  6  7: 8* a  b  c  d  e  f  g]  // (ls -> le -> re -> rs -> ls)
 ///   ╰───────────╮        ╰┈┈┆ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
 ///   ╭┈┈┈┈┈┈┈┈┈┈ ╰────────╮┈┈╯╭──────────────┆─╯
-///   ↓  sl            le  |   | sr         re┆
+///   ↓  ls            le  |   | rs         re┆
 /// [ a  2  .  .  .  .  7  1  g╯ b  .  .  .  f╰>8]  // (ls, le, re, rs)
 ///      ╰────────╮     ╰┈┈┈┈┈┈┈┈┆ ┈┈┈┈┈┈┈┈╮ |
 ///      ╭┈┈┈┈┈┈┈ ╰─────╮┈┈┈┈┈┈┈┈╯╭─────── ┆─╯
@@ -870,7 +868,7 @@ pub unsafe fn ptr_direct_rotate<T>(left: usize, mid: *mut T, right: usize) {
 /// [ a ~~~ c  4  5╮ 3  2  1  g  f  e╯ d╰>6 ~~~ 8]  // (ls, le,     rs)
 ///            ╰──╮╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╮ |
 ///            ╭┈ |┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┆─╯
-///            ↓  sl-->         <--re┆
+///            ↓  ls-->         <--re┆
 /// [ a ~~~~~~ d  4  3  2  1  g  f  e╰>5 ~~~~~~ 8]  // (ls,     re)
 ///               ╰┈┈╰┈┈╰┈╮┆╭┈╯┈┈╯┈┈╯
 ///               ╭┈ ╭┈ ╭ ╰┆┈┈╮ ┈╮ ┈╮

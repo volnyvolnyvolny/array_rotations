@@ -19,32 +19,71 @@ cargo bench
 
 Benchmarking could take some time :)
 
-## Intoduction
+## Introduction
 
-A rotation is to swap the left side of an array with the right side:
+Rotating an array is replacing the left side of it with the right one:
 
 ```text
                   dim      mid
        left = 9   | bridge |    right = 6
-[ 1  2  3  4  5  6: 7  8  9*10 11 12 13 14 15]
+[ 1  2  3  4  5  6: 7  8  9* A  B  C  D  E  F]
         └─────────────────┘
               shadow
 ```
 
-after the rotation the data is as following:
+Result:
 
 ```text
-[10 11 12 13 14 15: 1  2  3* 4  5  6  7  8  9]
+[ A  B  C  D  E  F: 1  2  3* 4  5  6  7  8  9]
 ```
 
 # Algorithms
 
+## Special (edge) cases
+
+### Left side == Right side
+
+The fastest algorithm in this case is the one that swaps elements one by one:
+
+```text
+ptr::swap_nonoverlapping(start, mid, right);
+```
+
+If `left == 1 && right == 1` it's a two-element array and it is faster to use:
+
+```text
+ptr::swap(start, mid);
+```
+
+where `start`, `mid` are corresponding pointers.
+
+See `ptr_edge_rotate`.
+
+### The smallest side has `1` or `2` elements
+
+In this case the fastest would be to copy smallest side to auxiliary memory and then
+to shift left or right.
+
+```text
+               mid
+    left = 5   | right = 1
+[ 1: 2  3  4  5* a]
+                 └──────┐
+[           1-5  ✘]    [a]
+  └──┬────────┴──┐
+[ ✘: 1  2  3  4  5]    [a]
+  ┌─────────────────────┘
+[ a: 1  .  .  .* 5]
+```
+
+See `utils::shift_left` and `utils::shift_right` for the benchmarks prooven fastests
+implementation.
+
 ## 💾 Auxiliary rotation
 
-“This is an easy and fast way to rotate, but since it requires auxiliary memory
-it is of little interest to in-place algorithms. It’s a good strategy for array
-sizes of `1000` elements or less. The smaller half is copied to swap memory, the
-larger half is moved, and the swap memory is copied back to the main array.”[^1]
+The easiest, but not always fastest way to rotate, is to copy a smaller half to an auxiliary
+memory. Since it requires additional memory it is of little interest to in-place algorithms.
+It's good for cases when the smallest part has size `1` or `2`.
 
 ### Examples
 
@@ -88,7 +127,7 @@ larger half is moved, and the swap memory is copied back to the main array.”[^
 
 "This is a slightly more complex auxiliary rotation than
 auxiliary rotation that reduces the maximum auxiliary memory
-requirement from `50%` to `33.(3)%`. If the overlap between the
+requirement from `50%` to `1/3`. If the overlap between the
 two halves is smaller than the halves themselves it copies
 the overlap to swap memory instead. Its first known publication
 was in *2021* by *Igor van den Hoven*."[^1]
