@@ -23,13 +23,13 @@ Benchmarking could take some time :)
 
 Rotating an array is replacing the left side of it with the right one:
 
-``
+```monospaced text
                   dim      mid
        left = 9   | 𝑏𝑟𝑖𝑑𝑔𝑒 |    right = 6
 [ 1  2  3  4  5  6: 7  8  9* A  B  C  D  E  F]
         └─────────────────┘
               shadow
-``
+```
 
 Result:
 
